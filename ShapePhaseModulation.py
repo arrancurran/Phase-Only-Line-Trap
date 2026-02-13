@@ -92,9 +92,9 @@ N = 512                 # SLM pixels (square)
 p = 15e-6               # pixel pitch [m]
 wavelength = 1064e-9    # wavelength [m]
 f = 3.33e-3             # objective focal length [m]
-L = 40e-6               # line length in sample plane [m]
+L = 200e-6               # line length in sample plane [m]
 A0 = 1                  # row fill fraction cap [0..1]
-carrier_fx = 0.02        # optional off-axis cycles per pixel along x
+carrier_fx = 0.08        # optional off-axis cycles per pixel along x
 randomize_S = False      # use random S with same pixels-per-row (Grier et al.)
 
 # Display parameters for SLM monitor
