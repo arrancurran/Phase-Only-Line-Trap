@@ -2,6 +2,63 @@ import numpy as np
 import numpy.fft as fft
 import matplotlib.pyplot as plt
 
+
+def show_hologram_on_slm(phase_img,
+                         offset_x=2560,
+                         offset_y=0,
+                         window_width=512,
+                         window_height=512,
+                         fullscreen=False):
+    """Display the hologram on a second monitor used as the SLM.
+
+    Parameters
+    ----------
+    phase_img : 2D array-like
+        8-bit phase hologram (e.g. 512x512) to display.
+    offset_x, offset_y : int
+        Top-left corner (in desktop pixels) where the SLM monitor begins.
+        Typically, for two monitors arranged side-by-side, set offset_x to
+        the width of your primary monitor in pixels.
+    fullscreen : bool
+        If True, try to make the window full screen on that monitor.
+    """
+    # Create a figure with no axes, just the hologram
+    fig = plt.figure(figsize=(5.12, 5.12), dpi=100)
+    ax = fig.add_axes([0, 0, 1, 1])
+    # Use nearest-neighbor interpolation so each hologram pixel
+    # maps cleanly to SLM pixels without smoothing.
+    ax.imshow(phase_img, cmap='gray',interpolation='nearest')
+    ax.axis('off')
+
+    manager = plt.get_current_fig_manager()
+
+    # Try to handle both TkAgg and Qt backends for window positioning
+    try:
+        # TkAgg backend (common on Windows)
+        window = manager.window
+        # Set explicit window size and position: WIDTHxHEIGHT+X+Y
+        window.wm_geometry(f"{window_width}x{window_height}+{offset_x}+{offset_y}")
+        if fullscreen:
+            try:
+                window.attributes("-fullscreen", True)
+            except Exception:
+                pass
+        window.lift()
+    except Exception:
+        try:
+            # Qt backend
+            window = manager.window
+            window.setGeometry(offset_x, offset_y, window_width, window_height)
+            if fullscreen:
+                window.showFullScreen()
+            else:
+                window.showNormal()
+        except Exception:
+            # If we cannot manipulate the window, just show the figure normally
+            pass
+
+    return fig
+
 def zoom_around_peak(I, half=90, thresh_frac=0.5):
     """Return a zoom window centered on the *center of the bright line*.
 
@@ -35,10 +92,20 @@ N = 512                 # SLM pixels (square)
 p = 15e-6               # pixel pitch [m]
 wavelength = 1064e-9    # wavelength [m]
 f = 3.33e-3             # objective focal length [m]
-L = 10e-6               # line length in sample plane [m]
-A0 = 1.0                # row fill fraction cap [0..1]
+L = 40e-6               # line length in sample plane [m]
+A0 = 1                  # row fill fraction cap [0..1]
 carrier_fx = 0.02        # optional off-axis cycles per pixel along x
 randomize_S = False      # use random S with same pixels-per-row (Grier et al.)
+
+# Display parameters for SLM monitor
+# Set SLM_OFFSET_X to the width (in pixels) of your primary monitor so that
+# the hologram window appears on the second monitor to the right. SLM_WINDOW_*
+# define the size of the hologram window in desktop pixels (e.g. 512x512).
+SHOW_ON_SLM = True
+SLM_OFFSET_X = 2560      # adjust to your primary monitor width plus any in-monitor offset
+SLM_OFFSET_Y = 0
+SLM_WINDOW_WIDTH = 512   # hologram window width in pixels
+SLM_WINDOW_HEIGHT = 512  # hologram window height in pixels
 
 # ---------------- coordinate axes ----------------
 # SLM-plane coordinates (meters)
@@ -87,7 +154,20 @@ phi_wrapped = np.remainder(phi_S, 2*np.pi, out=np.empty_like(phi_S))
 phase_8 = np.uint8(np.rint(phi_wrapped * (255.0 / (2*np.pi))))
 
 # Save hologram as 8-bit, 512x512 image
-plt.imsave('shape_phase_hologram_512.bmp', phase_8, cmap='gray')
+# plt.imsave('shape_phase_hologram_512.bmp', phase_8, cmap='gray')
+
+# ---------------- display hologram on SLM monitor ----------------
+if SHOW_ON_SLM:
+    # This opens a borderless/fullscreen window on the SLM monitor
+    # (second monitor) using the configured offsets and size.
+    show_hologram_on_slm(
+        phase_8,
+        offset_x=SLM_OFFSET_X,
+        offset_y=SLM_OFFSET_Y,
+        window_width=SLM_WINDOW_WIDTH,
+        window_height=SLM_WINDOW_HEIGHT,
+        fullscreen=False,
+    )
 
 # ---------------- predict focal-plane intensity (Fraunhofer) ----------------
 X, Y = np.meshgrid(x, y)
