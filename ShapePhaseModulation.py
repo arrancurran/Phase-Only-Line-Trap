@@ -91,11 +91,11 @@ def zoom_around_peak(I, half=90, thresh_frac=0.5):
 N = 512                 # SLM pixels (square)
 p = 15e-6               # pixel pitch [m]
 wavelength = 1064e-9    # wavelength [m]
-f = 3.33e-3             # objective focal length [m]
-L = 200e-6               # line length in sample plane [m]
+f = 3.0e-3             # objective focal length [m]
+L = 5e-6               # line length in sample plane [m]
 A0 = 1                  # row fill fraction cap [0..1]
-carrier_fx = 0.08        # optional off-axis cycles per pixel along x
-randomize_S = False      # use random S with same pixels-per-row (Grier et al.)
+carrier_fx = 0.06        # optional off-axis cycles per pixel along x
+randomize_S = True      # use random S with same pixels-per-row (Grier et al.)
 
 # Display parameters for SLM monitor
 # Set SLM_OFFSET_X to the width (in pixels) of your primary monitor so that

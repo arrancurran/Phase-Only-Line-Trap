@@ -52,11 +52,11 @@ N = 512                 # SLM pixels (square)
 # Stripe in the pupil (SLM) domain
 # Choose orientation and width of the bright stripe.
 stripe_orientation = "vertical"   # "vertical" or "horizontal"
-stripe_width_pixels = 40           # width of the bright stripe in pixels
+stripe_width_pixels = 400           # width of the bright stripe in pixels
 
 # Simple amplitude grating to displace the line off-axis
 # carrier_fx is in cycles per pixel; adjust to move the line further away
-carrier_fx = 0.04
+carrier_fx = 0.08
 
 # Display parameters for SLM monitor
 SHOW_ON_SLM = True
