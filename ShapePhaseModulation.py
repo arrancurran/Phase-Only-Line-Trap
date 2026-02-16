@@ -4,6 +4,9 @@ import matplotlib
 # matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 
+blaze = np.array([0.000000, 0.057705, 0.114756, 0.170501, 0.224285, 0.275457, 0.323361, 0.367346, 0.406758, 0.440943, 0.469248, 0.491020, 0.505781, 0.514422, 0.518472, 0.519466, 0.518936, 0.518416, 0.519441, 0.523543, 0.532256, 0.547115, 0.569651, 0.600860, 0.640003, 0.685993, 0.737743, 0.794168, 0.854179, 0.916692, 0.980618, 1.000000])
+
+
 def show_hologram_on_slm(hologram, offset_x=2560, offset_y=0, slm_width=512, slm_height=512):
     """Display the hologram on a second monitor used as the SLM.
     hologram : 2D array 8-bit phase hologram to display.
