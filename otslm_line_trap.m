@@ -26,7 +26,7 @@ sinc = otslm.simple.sinc(sz, radius, 'type', '1d', 'angle_deg', theta);
   
 % Apply a checkerboard to unassigned regions
 checker_line = otslm.simple.linear(sz, 10, 'angle_deg', 90);
-checker_spot = otslm.simple.linear(sz, 3, 'angle_deg', 90);
+checker_spot = otslm.simple.linear(sz, 6, 'angle_deg', 90);
 pattern(assigned) = pattern(assigned) + checker_line(assigned); 
 pattern(~assigned) = checker_spot(~assigned);
 
@@ -36,7 +36,7 @@ subplot(2, 1, 1);
 imagesc(pattern);
 
 subplot(2, 1, 2);
-imagesc((visualize(pattern)));
+imagesc(log(visualize(pattern)));
 
 %% Change properties of all figures
 

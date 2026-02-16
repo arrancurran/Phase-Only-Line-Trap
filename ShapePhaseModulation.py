@@ -6,8 +6,6 @@ import matplotlib.pyplot as plt
 
 def show_hologram_on_slm(hologram, offset_x=2560, offset_y=0, slm_width=512, slm_height=512):
     """Display the hologram on a second monitor used as the SLM.
-    Parameters
-    ----------
     hologram : 2D array 8-bit phase hologram to display.
     offset_x, offset_y : int
         Top-left corner (in desktop pixels) where the SLM monitor begins.
@@ -15,12 +13,10 @@ def show_hologram_on_slm(hologram, offset_x=2560, offset_y=0, slm_width=512, slm
     # Create a figure with no axes
     fig = plt.figure(figsize=(5.12, 5.12), dpi=100)
     ax = fig.add_axes([0, 0, 1, 1])
-    # Use nearest-neighbor interpolation so each hologram pixel maps cleanly to SLM pixels without smoothing.
-    ax.imshow(hologram, cmap='gray',interpolation='nearest')
+    # Use nearest-neighbor interpolation so each hologram pixel maps to SLM pixels.
+    ax.imshow(hologram, cmap='gray', interpolation='nearest')
     ax.axis('off')
-
     manager = plt.get_current_fig_manager()
-
     # Try to handle both TkAgg and Qt backends for window positioning
     try:
         # TkAgg backend (common on Windows)
@@ -30,14 +26,12 @@ def show_hologram_on_slm(hologram, offset_x=2560, offset_y=0, slm_width=512, slm
             window.overrideredirect(True)
         except Exception:
             pass
-
         # Hide the toolbar if present
         try:
             if hasattr(fig.canvas, "toolbar") and fig.canvas.toolbar is not None:
                 fig.canvas.toolbar.pack_forget()
         except Exception:
             pass
-
         # Set explicit window size and position: WIDTHxHEIGHT+X+Y
         window.wm_geometry(f"{slm_width}x{slm_height}+{offset_x}+{offset_y}")
         window.lift()
@@ -47,7 +41,7 @@ def show_hologram_on_slm(hologram, offset_x=2560, offset_y=0, slm_width=512, slm
     return fig
 
 def zoom_around_peak(I, half=90, thresh_frac=0.5):
-    """Return a zoom window centered on the *center of the bright line*.
+    """Return a zoom window centered on the brightest pixel in the image.
     """
     I = np.asarray(I)
     max_val = I.max()
@@ -65,6 +59,13 @@ def zoom_around_peak(I, half=90, thresh_frac=0.5):
     x0 = max(0, ix - half); x1 = min(I.shape[1], ix + half)
     return I[y0:y1, x0:x1], (iy, ix), (y0, y1, x0, x1)
 
+def grating_phase(Nx, Ny, carrier_fx):
+    """Calculate the grating phase pattern for a given carrier frequency and x coordinates."""
+    x = (np.arange(Nx, dtype=np.float32) - Nx/2.0)[None, :]
+    grating = 2.0 * np.pi * (carrier_fx * x)
+    grating = np.remainder(grating, 2*np.pi)
+    grating = np.broadcast_to(grating, (Ny, Nx)).astype(np.float32)
+    return grating
 
 # Generate hologram using shape-phase method for a uniform line tweezer
 # (based on Roichman & Grier, Opt. Lett. 2006)
@@ -84,26 +85,30 @@ SHOW_ON_SLM = False
 SLM_OFFSET_X = 0
 SLM_OFFSET_Y = 0
 
-# SLM-plane coordinates (meters)
+# SLM-plane pixel coordinates from centre in meters
 x = (np.arange(Nx) - Nx/2) * p
 y = (np.arange(Ny) - Ny/2) * p
 
-# chi(rho) ∝ sinc(π * ρ_y * L / (f λ))
-s_row = np.sinc((y * L) / (f * wavelength))
-A_row = (A0 * np.abs(s_row)).astype(np.float32)
+k = np.pi / L
+# psi(rho) ∝ sinc(π * ρ_y * L / (f λ)) Equation 4 in Roichman & Grier, Opt. Lett. 2006
+psi_rho = np.sinc((y * L) / (f * wavelength))
+# Equation 6
+A_rho = (A0 * np.abs(psi_rho)).astype(np.float32)
 
-# φ(ρ) = { π  if sinc(k ρ_y) > 0
+# φ(ρ) = { π  if sinc(k ρ_y) >= 0
 #        { 0  otherwise
 # 
-# Equation 7 in Roichman & Grier, Opt. Lett. 2006
-phi_row = np.where(s_row >= 0.0, np.pi, 0.0).astype(np.float32)
+# Equation 7
+phi_rho = np.where(psi_rho >= 0.0, np.pi, 0.0).astype(np.float32)
+
+# S_rho = np.where( np.abs(x) < A_rho, 1.0, 0.0).astype(np.float32)
 
 # ---------------- selection mask S(ρ) ----------------
-# Use normalized x in [-1,1]. Row j keeps columns where |x_norm| < A_row[j].
+# Use normalized x in [-1,1]. Row j keeps columns where |x_norm| < A_rho[j].
 x_norm = (np.arange(Nx, dtype=np.float32) - (Nx - 1) / 2.0) / ((Nx - 1) / 2.0)
-row_widths = np.clip(A_row, 0.0, 1.0)[:, None]
+# Equation 9
+row_widths = np.clip(A_rho, 0.0, 1.0)[:, None]
 
-# Deterministic mask: central contiguous block in each row
 S = (np.abs(x_norm)[None, :] < row_widths).astype(np.uint8)
 
 if randomize_S:
@@ -122,31 +127,23 @@ if randomize_S:
     S = S_rand
 
 # Phase for the line trap, applied only where S = 1 (0 : 2pi)
-phi_line = (phi_row[:, None] * S).astype(np.float32) * 2
+holo_line = (phi_rho[:, None] * S).astype(np.float32) * 2
 
 # Grating for unassigned pixels, where S = 0
-
-def grating_phase(Nx, Ny, carrier_fx):
-    """Calculate the grating phase pattern for a given carrier frequency and x coordinates."""
-    x = (np.arange(Nx, dtype=np.float32) - Nx/2.0)[None, :]
-    grating = 2.0 * np.pi * (carrier_fx * x)
-    grating = np.remainder(grating, 2*np.pi)
-    grating = np.broadcast_to(grating, (Ny, Nx)).astype(np.float32)
-    return grating
 
 grating_spot = grating_phase(Nx, Ny, carrier_fx)
 
 grating_line = grating_phase(Nx, Ny, 0.01)
 
-# phi_line = np.where(S == 1, phi_line, grating_line).astype(np.float32)
-phi_line = np.where(S == 1, grating_line, phi_line).astype(np.float32)
+# holo_line = np.where(S == 1, holo_line, grating_line).astype(np.float32)
+# holo_line = np.where(S == 1, grating_line, holo_line).astype(np.float32)
 
 # Combine phases: where S=1 use line-trap phase, elsewhere use grating
-phi_total = np.where(S == 0, grating_spot, phi_line).astype(np.float32)
+holo_total = np.where(S == 0, grating_spot, holo_line).astype(np.float32)
 
 # ---------------- wrap and quantize to 8-bit phase ----------------
-phi_wrapped = np.remainder(phi_total, 2*np.pi, out=np.empty_like(phi_total))
-phase_8 = np.uint8(np.rint(phi_total * (255.0 / (2*np.pi))))
+phi_wrapped = np.remainder(holo_total, 2*np.pi, out=np.empty_like(holo_total))
+phase_8 = np.uint8(np.rint(holo_total * (255.0 / (2*np.pi))))
 
 # Save hologram as 8-bit, 512x512 image
 # plt.imsave('shape_phase_hologram_512.bmp', phase_8, cmap='gray')
@@ -168,7 +165,7 @@ w0 = 6e-3  # 1/e^2 radius at the SLM
 A_gauss = np.exp(-(X**2 + Y**2) / w0**2)
 A_gauss = A_gauss / A_gauss.max()  # normalize to 2pi for better visualization of phase
 # Gaussian illumination overfills the SLM; S only chooses the phase pattern.
-U_pupil = A_gauss * np.exp(1j * phi_total)
+U_pupil = A_gauss * np.exp(1j * holo_total)
 U_f = fft.fftshift(fft.fft2(fft.ifftshift(U_pupil + np.pi)))
 I_f = np.abs(U_f) ** 2
 I_f /= I_f.max()
@@ -184,9 +181,9 @@ line_profile /= line_profile.max()
 fig, axs = plt.subplots(3, 2, figsize=(12, 16), constrained_layout=True)
 
 # Line-trap phase where S = 1
-im_phi_line = axs[0, 0].imshow(phi_line, cmap='gray')
-fig.colorbar(im_phi_line    , ax=axs[0, 0], fraction=0.046, pad=0.04, label='Phase (radians)')
-axs[0, 0].set_title('Line-trap phase (phi_line)')
+im_holo_line = axs[0, 0].imshow(holo_line, cmap='gray')
+fig.colorbar(im_holo_line    , ax=axs[0, 0], fraction=0.046, pad=0.04, label='Phase (radians)')
+axs[0, 0].set_title('Line-trap phase (holo_line)')
 axs[0, 0].axis('off')
 axs[0, 0].set_aspect('equal')
 
@@ -197,9 +194,9 @@ axs[0, 1].set_title('Grating phase (grating_spot)')
 axs[0, 1].axis('off')
 
 # Total wrapped phase shown as 8-bit hologram
-hologram = axs[1, 0].imshow(phi_total, cmap='gray')
+hologram = axs[1, 0].imshow(holo_total, cmap='gray')
 fig.colorbar(hologram, ax=axs[1, 0], fraction=0.046, pad=0.04, label='Phase (radians)')
-axs[1, 0].set_title('Combined phase (phi_total)')
+axs[1, 0].set_title('Combined phase (holo_total)')
 axs[1, 0].axis('off')
 
 # Phase of the Gaussian beam after the SLM
@@ -210,7 +207,7 @@ axs[1, 1].set_title('Phase after SLM')
 axs[1, 1].axis('off')
 
 # Focal-plane intensity
-im_I = axs[2, 0].imshow(Iz, cmap='gray')
+im_I = axs[2, 0].imshow((Iz), cmap='gray')
 fig.colorbar(im_I, ax=axs[2, 0], fraction=0.046, pad=0.04, label='log(Intensity)')
 axs[2, 0].set_title('Predicted Intensity at Focus')
 axs[2, 0].axis('off')
