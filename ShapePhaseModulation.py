@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 
 blaze = np.array([0.000000, 0.057705, 0.114756, 0.170501, 0.224285, 0.275457, 0.323361, 0.367346, 0.406758, 0.440943, 0.469248, 0.491020, 0.505781, 0.514422, 0.518472, 0.519466, 0.518936, 0.518416, 0.519441, 0.523543, 0.532256, 0.547115, 0.569651, 0.600860, 0.640003, 0.685993, 0.737743, 0.794168, 0.854179, 0.916692, 0.980618, 1.000000])
 
+blaze_256 = np.interp(np.arange(256), np.linspace(0, 255, len(blaze)), blaze)
+
 
 def show_hologram_on_slm(hologram, offset_x=2560, offset_y=0, slm_width=512, slm_height=512):
     """Display the hologram on a second monitor used as the SLM.
@@ -80,7 +82,7 @@ wavelength = 1064e-9    # wavelength [m]
 f = 3.0e-3              # objective focal length [m]
 L = 20e-6               # line length in sample plane [m]
 A0 = 1                  # row fill fraction cap [0..1]
-carrier_fx = 0.1        # optional off-axis cycles per pixel along x
+carrier_fx = 0.2        # optional off-axis cycles per pixel along x
 randomize_S = False     # use random S with same pixels-per-row
 
 # Display parameters for SLM monitor
@@ -169,7 +171,7 @@ A_gauss = np.exp(-(X**2 + Y**2) / w0**2)
 A_gauss = A_gauss / A_gauss.max()  # normalize to 2pi for better visualization of phase
 # Gaussian illumination overfills the SLM; S only chooses the phase pattern.
 U_pupil = A_gauss * np.exp(1j * holo_total)
-U_f = fft.fftshift(fft.fft2(fft.ifftshift(U_pupil + np.pi)))
+U_f = fft.fftshift(fft.fft2(fft.ifftshift(U_pupil)))
 I_f = np.abs(U_f) ** 2
 I_f /= I_f.max()
 
@@ -185,7 +187,7 @@ fig, axs = plt.subplots(3, 2, figsize=(12, 16), constrained_layout=True)
 
 # Line-trap phase where S = 1
 im_holo_line = axs[0, 0].imshow(holo_line, cmap='gray')
-fig.colorbar(im_holo_line    , ax=axs[0, 0], fraction=0.046, pad=0.04, label='Phase (radians)')
+fig.colorbar(im_holo_line, ax=axs[0, 0], fraction=0.046, pad=0.04, label='Phase (radians)')
 axs[0, 0].set_title('Line-trap phase (holo_line)')
 axs[0, 0].axis('off')
 axs[0, 0].set_aspect('equal')
@@ -204,16 +206,16 @@ axs[1, 0].axis('off')
 
 # Phase of the Gaussian beam after the SLM
 phase_slm = np.angle(U_pupil)
-im_phi_slm = axs[1, 1].imshow(np.real(U_pupil), cmap='gray')
+im_phi_slm = axs[1, 1].imshow(phase_slm, cmap='gray')
 fig.colorbar(im_phi_slm, ax=axs[1, 1], fraction=0.046, pad=0.04, label='Phase (radians)')
 axs[1, 1].set_title('Phase after SLM')
 axs[1, 1].axis('off')
 
 # Focal-plane intensity
-im_I = axs[2, 0].imshow((Iz), cmap='gray')
+im_I = axs[2, 0].imshow(np.log(I_f), cmap='gray')
 fig.colorbar(im_I, ax=axs[2, 0], fraction=0.046, pad=0.04, label='log(Intensity)')
 axs[2, 0].set_title('Predicted Intensity at Focus')
-axs[2, 0].axis('off')
+# axs[2, 0].axis('off')
 
 # Line intensity profile
 axs[2, 1].plot(line_profile)
