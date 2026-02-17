@@ -1,7 +1,7 @@
 import numpy as np
 import numpy.fft as fft
 import matplotlib
-# matplotlib.use("TkAgg")
+matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 
 blaze = np.array([0.000000, 0.057705, 0.114756, 0.170501, 0.224285, 0.275457, 0.323361, 0.367346, 0.406758, 0.440943, 0.469248, 0.491020, 0.505781, 0.514422, 0.518472, 0.519466, 0.518936, 0.518416, 0.519441, 0.523543, 0.532256, 0.547115, 0.569651, 0.600860, 0.640003, 0.685993, 0.737743, 0.794168, 0.854179, 0.916692, 0.980618, 1.000000])
@@ -80,14 +80,14 @@ Nx, Ny = 512, 512       # SLM pixels (square)
 p = 15e-6               # pixel pitch [m]
 wavelength = 1064e-9    # wavelength [m]
 f = 3.0e-3              # objective focal length [m]
-L = 20e-6               # line length in sample plane [m]
-A0 = 1                  # row fill fraction cap [0..1]
+L = 60e-6               # line length in sample plane [m]
+A0 = 1.0                  # row fill fraction cap [0..1]
 carrier_fx = 0.2        # optional off-axis cycles per pixel along x
-randomize_S = False     # use random S with same pixels-per-row
+randomize_S = True     # use random S with same pixels-per-row
 
 # Display parameters for SLM monitor
-SHOW_ON_SLM = False
-SLM_OFFSET_X = 0
+SHOW_ON_SLM = True
+SLM_OFFSET_X = 2560
 SLM_OFFSET_Y = 0
 
 # SLM-plane pixel coordinates from centre in meters
@@ -98,13 +98,13 @@ k = np.pi / L
 # psi(rho) ∝ sinc(π * ρ_y * L / (f λ)) Equation 4 in Roichman & Grier, Opt. Lett. 2006
 psi_rho = np.sinc((y * L) / (f * wavelength))
 # Equation 6
-A_rho = (A0 * np.abs(psi_rho)).astype(np.float32)
+# A_rho = (A0 * np.abs(psi_rho)).astype(np.float32)
 
 # φ(ρ) = { π  if sinc(k ρ_y) >= 0
 #        { 0  otherwise
 # 
 # Equation 7
-phi_rho = np.where(psi_rho >= 0.0, np.pi, 0.0).astype(np.float32)
+# phi_rho = np.where(psi_rho >= 0.0, np.pi, 0.0).astype(np.float32)
 
 # S_rho = np.where( np.abs(x) < A_rho, 1.0, 0.0).astype(np.float32)
 
@@ -112,9 +112,19 @@ phi_rho = np.where(psi_rho >= 0.0, np.pi, 0.0).astype(np.float32)
 # Use normalized x in [-1,1]. Row j keeps columns where |x_norm| < A_rho[j].
 x_norm = (np.arange(Nx, dtype=np.float32) - (Nx - 1) / 2.0) / ((Nx - 1) / 2.0)
 # Equation 9
-row_widths = np.clip(A_rho, 0.0, 1.0)[:, None]
+# row_widths = np.clip(A_rho, 0.0, 1.0)[:, None]
 
+y_shift_rows = 0
+y_shift = y_shift_rows * p          # p is pixel pitch
+y_eff = y - y_shift
+
+psi_rho = np.sinc((y_eff * L) / (f * wavelength))
+A_rho = (A0 * np.abs(psi_rho)).astype(np.float32)
+phi_rho = np.where(psi_rho >= 0.0, np.pi, 0.0).astype(np.float32)
+row_widths = np.clip(A_rho, 0.0, 1.0)[:, None]
 S = (np.abs(x_norm)[None, :] < row_widths).astype(np.uint8)
+
+# S = (np.abs(x_norm)[None, :] < row_widths).astype(np.uint8)
 
 if randomize_S:
     # Replace S with a random distribution that keeps the same
@@ -132,13 +142,13 @@ if randomize_S:
     S = S_rand
 
 # Phase for the line trap, applied only where S = 1 (0 : 2pi)
-holo_line = (phi_rho[:, None] * S).astype(np.float32) * 2
+holo_line = np.mod((phi_rho[:, None] * S).astype(np.float32), 2*np.pi)
 
 # Grating for unassigned pixels, where S = 0
 
 grating_spot = grating_phase(Nx, Ny, carrier_fx)
 
-grating_line = grating_phase(Nx, Ny, 0.01)
+grating_line = grating_phase(Nx, Ny, - 0.1)
 
 # holo_line = np.where(S == 1, holo_line, grating_line).astype(np.float32)
 # holo_line = np.where(S == 1, grating_line, holo_line).astype(np.float32)
@@ -157,7 +167,7 @@ phase_8 = np.uint8(np.rint(holo_total * (255.0 / (2*np.pi))))
 if SHOW_ON_SLM:
     # This opens a borderless/fullscreen window on the SLM
     show_hologram_on_slm(
-        phase_8,
+        blaze_256[phase_8],
         offset_x=SLM_OFFSET_X,
         offset_y=SLM_OFFSET_Y,
         slm_width=Nx,
