@@ -8,7 +8,7 @@ radius = 10;          % Inverse length of the line trap (sinc radius)
 theta = 0;         % Rotation of pattern (degrees)
 
 sz = [512, 512];      % Size of pattern
-o = 100;               % Region of interest size in output
+o = 200;               % Region of interest size in output
 padding = 500;        % Padding for FFT
 
 % incident = [];        % Incident beam (use default in visualize)
@@ -34,10 +34,10 @@ pattern_sinc = phi .* assigned;
 % [pattern_sinc, assigned] = otslm.tools.encode1d(sinc, 'angle_deg', theta, 'scale', 200);
   
 % Apply a checkerboard to unassigned regions
-grate_line = otslm.simple.linear(sz, 20, 'angle_deg', 90);
+grate_line = otslm.simple.linear(sz, 60, 'angle_deg', 45);
 
 
-grate_spot = otslm.simple.linear(sz, -10, 'angle_deg',90);
+grate_spot = otslm.simple.linear(sz, -40, 'angle_deg', 45);
 
 
 pattern_sinc_grate = pattern_sinc ;

@@ -151,7 +151,7 @@ grating_spot = grating_phase(Nx, Ny, carrier_fx)
 grating_line = grating_phase(Nx, Ny, - 0.1)
 
 # holo_line = np.where(S == 1, holo_line, grating_line).astype(np.float32)
-# holo_line = np.where(S == 1, grating_line, holo_line).astype(np.float32)
+holo_line = np.where(S == 1, grating_line, holo_line).astype(np.float32)
 
 # Combine phases: where S=1 use line-trap phase, elsewhere use grating
 holo_total = np.where(S == 0, grating_spot, holo_line).astype(np.float32)
