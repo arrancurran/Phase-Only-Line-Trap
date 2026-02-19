@@ -72,6 +72,20 @@ def grating_phase(Nx, Ny, carrier_fx):
     grating = np.broadcast_to(grating, (Ny, Nx)).astype(np.float32)
     return grating
 
+def grating_phase_tilt(Nx, Ny, f_c, theta_deg):
+    theta = np.deg2rad(theta_deg)
+    fx = f_c * np.cos(theta)   # cycles per pixel in x
+    fy = f_c * np.sin(theta)   # cycles per pixel in y
+
+    X, Y = np.meshgrid(
+        np.arange(Nx, dtype=np.float32) - Nx/2.0,
+        np.arange(Ny, dtype=np.float32) - Ny/2.0
+    )
+
+    phase = 2.0 * np.pi * (fx * X + fy * Y)
+    phase = np.remainder(phase, 2*np.pi).astype(np.float32)
+    return phase
+
 # Generate hologram using shape-phase method for a uniform line tweezer
 # (based on Roichman & Grier, Opt. Lett. 2006)
 
@@ -80,14 +94,14 @@ Nx, Ny = 512, 512       # SLM pixels (square)
 p = 15e-6               # pixel pitch [m]
 wavelength = 1064e-9    # wavelength [m]
 f = 3.0e-3              # objective focal length [m]
-L = 60e-6               # line length in sample plane [m]
-A0 = 1.0                  # row fill fraction cap [0..1]
-carrier_fx = 0.2        # optional off-axis cycles per pixel along x
-randomize_S = True     # use random S with same pixels-per-row
+L = 20e-6               # line length in sample plane [m]
+A0 = 1                  # row fill fraction cap [0..1]
+carrier_fx = 0.1        # optional off-axis cycles per pixel along x
+randomize_S = False     # use random S with same pixels-per-row
 
 # Display parameters for SLM monitor
 SHOW_ON_SLM = True
-SLM_OFFSET_X = 2560
+SLM_OFFSET_X = 0
 SLM_OFFSET_Y = 0
 
 # SLM-plane pixel coordinates from centre in meters
@@ -146,12 +160,12 @@ holo_line = np.mod((phi_rho[:, None] * S).astype(np.float32), 2*np.pi)
 
 # Grating for unassigned pixels, where S = 0
 
-grating_spot = grating_phase(Nx, Ny, carrier_fx)
+grating_spot = grating_phase_tilt(Nx, Ny, 0.01, 45)
 
-grating_line = grating_phase(Nx, Ny, - 0.1)
+grating_line = grating_phase_tilt(Nx, Ny, 0.01, 90)
 
 # holo_line = np.where(S == 1, holo_line, grating_line).astype(np.float32)
-holo_line = np.where(S == 1, grating_line, holo_line).astype(np.float32)
+holo_line = np.where(S == 1, np.mod(holo_line + grating_line, 2*np.pi).astype(np.float32), 0).astype(np.float32)
 
 # Combine phases: where S=1 use line-trap phase, elsewhere use grating
 holo_total = np.where(S == 0, grating_spot, holo_line).astype(np.float32)
@@ -216,13 +230,13 @@ axs[1, 0].axis('off')
 
 # Phase of the Gaussian beam after the SLM
 phase_slm = np.angle(U_pupil)
-im_phi_slm = axs[1, 1].imshow(phase_slm, cmap='gray')
+im_phi_slm = axs[1, 1].imshow(phase_8, cmap='gray')
 fig.colorbar(im_phi_slm, ax=axs[1, 1], fraction=0.046, pad=0.04, label='Phase (radians)')
 axs[1, 1].set_title('Phase after SLM')
 axs[1, 1].axis('off')
 
 # Focal-plane intensity
-im_I = axs[2, 0].imshow(np.log(I_f), cmap='gray')
+im_I = axs[2, 0].imshow((I_f), cmap='gray')
 fig.colorbar(im_I, ax=axs[2, 0], fraction=0.046, pad=0.04, label='log(Intensity)')
 axs[2, 0].set_title('Predicted Intensity at Focus')
 # axs[2, 0].axis('off')
