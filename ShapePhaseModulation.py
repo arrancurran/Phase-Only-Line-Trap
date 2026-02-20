@@ -97,11 +97,11 @@ f = 3.0e-3              # objective focal length [m]
 L = 20e-6               # line length in sample plane [m]
 A0 = 1                  # row fill fraction cap [0..1]
 carrier_fx = 0.1        # optional off-axis cycles per pixel along x
-randomize_S = False     # use random S with same pixels-per-row
+randomize_S = True     # use random S with same pixels-per-row
 
 # Display parameters for SLM monitor
 SHOW_ON_SLM = True
-SLM_OFFSET_X = 0
+SLM_OFFSET_X = 2560
 SLM_OFFSET_Y = 0
 
 # SLM-plane pixel coordinates from centre in meters
@@ -160,9 +160,9 @@ holo_line = np.mod((phi_rho[:, None] * S).astype(np.float32), 2*np.pi)
 
 # Grating for unassigned pixels, where S = 0
 
-grating_spot = grating_phase_tilt(Nx, Ny, 0.01, 45)
+grating_spot = grating_phase_tilt(Nx, Ny, 0.1, 90)
 
-grating_line = grating_phase_tilt(Nx, Ny, 0.01, 90)
+grating_line = grating_phase_tilt(Nx, Ny, -0.2, 45)
 
 # holo_line = np.where(S == 1, holo_line, grating_line).astype(np.float32)
 holo_line = np.where(S == 1, np.mod(holo_line + grating_line, 2*np.pi).astype(np.float32), 0).astype(np.float32)
