@@ -82,7 +82,7 @@ A0 = 1                  # row fill fraction cap [0..1]
 angle = 0              # line angle in degrees (0 = horizontal, 90 = vertical)
 line_offset_x = -20     # offset in x direction [µm]
 line_offset_y = 0     # offset in y direction [µm]
-dz = 5
+dz = 0
 
 # ---------------- Spot parameters ----------------
 spot_offset_x = 20      # grating offset for unassigned pixels [µm]

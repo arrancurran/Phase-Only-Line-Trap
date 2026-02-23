@@ -16,6 +16,7 @@ def build_hologram(
     line_offset_y=0,
     spot_offset_x=0,
     spot_offset_y=0,
+    holo_fresnel=None,
 ):
     """Build a phase-only hologram for a line trap plus background spot.
 
@@ -48,12 +49,20 @@ def build_hologram(
 
     # Calculate the line phase pattern and selection mask S
     holo_line, S = line_phase(Nx, Ny, L, scaling_factor, angle, A0, randomise)
+    
 
     grating_line = grating_phase(Nx, Ny, line_offset_x, line_offset_y, scaling_factor)
-    # Combine line and grating inside the selected region
+
+    # Optionally add a Fresnel (defocus) phase only inside the line region
+    if holo_fresnel is not None:
+        phase_line = holo_line + grating_line + holo_fresnel
+    else:
+        phase_line = holo_line + grating_line
+
+    # Combine line, grating (and optional Fresnel) inside the selected region
     holo_line = np.where(
         S == 1,
-        np.mod(holo_line + grating_line, 2 * np.pi).astype(np.float32),
+        np.mod(phase_line, 2 * np.pi).astype(np.float32),
         0,
     ).astype(np.float32)
 
