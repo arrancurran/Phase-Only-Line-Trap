@@ -3,6 +3,7 @@ import numpy.fft as fft
 import matplotlib.pyplot as plt
 
 # from show_hologram_on_slm import show_hologram_on_slm
+from fresnel_phase import fresnel_phase
 from grating_phase import grating_phase
 from line_phase import line_phase
 
@@ -75,12 +76,13 @@ obj_mask = (r_pix <= obj_at_slm_px / 2).astype(np.float32)
 scaling_factor = p / (f * wavelength)
 
 # ---------------- Line parameters ----------------
-randomise = False        # use random S with same pixels-per-row
+randomise = True        # use random S with same pixels-per-row
 L = 40                  # line length in sample plane [µm]
 A0 = 1                  # row fill fraction cap [0..1]
 angle = 0              # line angle in degrees (0 = horizontal, 90 = vertical)
 line_offset_x = -20     # offset in x direction [µm]
 line_offset_y = 0     # offset in y direction [µm]
+dz = 5
 
 # ---------------- Spot parameters ----------------
 spot_offset_x = 20      # grating offset for unassigned pixels [µm]
@@ -90,12 +92,14 @@ spot_offset_y = 0      # grating offset for unassigned pixels [µm]
 # display_on_slm = False
 visualise = True
 
+holo_fresnel = fresnel_phase(Nx, Ny, dz, f, wavelength, p)
+
 # Calculate the line phase pattern and selection mask S
 holo_line, S = line_phase(Nx, Ny, L, scaling_factor, angle, A0, randomise)
 
 grating_line = grating_phase(Nx, Ny, line_offset_x, line_offset_y, scaling_factor)
 # holo_line = np.where(S == 1, holo_line, grating_line).astype(np.float32)
-holo_line = np.where(S == 1, np.mod(holo_line + grating_line, 2*np.pi).astype(np.float32), 0).astype(np.float32)
+holo_line = np.where(S == 1, np.mod(holo_line + grating_line + holo_fresnel, 2*np.pi).astype(np.float32), 0).astype(np.float32)
 
 # Grating for unassigned pixels, where S = 0
 grating_spot = grating_phase(Nx, Ny, spot_offset_x, spot_offset_y, scaling_factor)
