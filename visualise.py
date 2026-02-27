@@ -7,9 +7,15 @@ def visualise_focal_plane(hologram, Nx, Ny, p, obj_mask):
     x = (np.arange(Nx) - Nx/2) * p
     y = (np.arange(Ny) - Ny/2) * p
     X, Y = np.meshgrid(x, y)
-    w0 = 5e-3  # 1/e^2 radius of the Gaussian at the SLM
-    A_gauss = np.exp(-(X**2 + Y**2) / w0**2)
-    A_gauss = A_gauss / A_gauss.max() * 2 * np.pi  # normalize to 2pi for better visualization of phase
+    
+    w0x = 2.4e-3  # along x
+    w0y = 5e-3  # along y (tighter → more oval)
+    A_gauss = np.exp(-(X**2 / w0x**2 + Y**2 / w0y**2))
+
+
+    # w0 = 5e-3  # 1/e^2 radius of the Gaussian at the SLM
+    # A_gauss = np.exp(-(X**2 + Y**2) / w0**2)
+    # A_gauss = A_gauss / A_gauss.max() * 2 * np.pi  # normalize to 2pi for better visualization of phase
     # Gaussian illumination overfills the SLM; S only chooses the phase pattern.
     U_pupil = A_gauss * obj_mask * np.exp(1j * hologram)
     

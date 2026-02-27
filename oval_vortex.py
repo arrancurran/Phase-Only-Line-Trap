@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from fresnel_phase import fresnel_phase
 from grating_phase import grating_phase
 from vortex_phase import vortex_phase, vortex_phase_anisotropic
+from astig_phase import astig_phase, zernike_astig_phase
 
 
 from visualise import visualise_focal_plane, slm_to_img_scaling, plot_line_intensity
@@ -30,12 +31,16 @@ scaling_factor = p / (f * wavelength)
 
 
 # ---------------- Spot parameters ----------------      
-vortex_charge = 60      # topological charge of the vortex
-aspect_ratio = 1.2     # aspect ratio of the vortex (ax/ay) to create an elliptical vortex
+vortex_charge = 40      # topological charge of the vortex
+aspect_ratio = 1.0     # aspect ratio of the vortex (ax/ay) to create an elliptical vortex
 
 # ---------------- Plots parameters ----------------
 
-holo_vortex = vortex_phase_anisotropic(Nx, Ny, vortex_charge, ax=aspect_ratio, ay=1.0)
+phase_vortex = vortex_phase_anisotropic(Nx, Ny, vortex_charge, ax=aspect_ratio, ay=1.0)
+
+phase_astig = zernike_astig_phase(Nx, Ny, strength=4, angle_deg=45, pupil_radius_pix=None)
+
+holo = np.mod(phase_vortex + phase_astig, 2*np.pi)
 
 fig = plt.figure(figsize=(12, 12), constrained_layout=True)
 gs = fig.add_gridspec(nrows=1, ncols=2)
@@ -44,14 +49,21 @@ gs = fig.add_gridspec(nrows=1, ncols=2)
 ax1 = fig.add_subplot(gs[0, 0])
 ax2 = fig.add_subplot(gs[0, 1])
 
-im1 = ax1.imshow(holo_vortex, cmap="gray")
-ax1.set_title("Vortex phase")
+im1 = ax1.imshow(holo, cmap="gray")
+ax1.set_title("Vortex phase + Astigmatism phase")
 ax1.axis("off")
 
-I = visualise_focal_plane(holo_vortex, Nx, Ny, p, obj_mask)
+I = visualise_focal_plane(holo, Nx, Ny, p, obj_mask)
 
-im2 = ax2.imshow(I, cmap="gray")
-ax2.set_title("Predicted Intensity at Focus")
+size = 200
+
+cy, cx = Ny // 2, Nx // 2
+half = size // 2
+
+I_crop = I[cy-half:cy+half, cx-half:cx+half]
+
+im2 = ax2.imshow(I_crop, cmap="gray")
+ax2.set_title("Predicted Intensity at Focus with Oval Guaussian Illumination")
 ax2.axis("off")
 
 plt.show()

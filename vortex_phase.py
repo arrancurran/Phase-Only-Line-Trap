@@ -60,6 +60,6 @@ def vortex_phase_anisotropic(Nx, Ny, l, ax=1.0, ay=1.0, cx=None, cy=None):
     Ys = Y / ay
 
     phi = np.arctan2(Ys, Xs)
-    phase = np.mod(l * phi, 2 * np.pi).astype(np.float32)
+    phase = l * phi
     
-    return phase
+    return phase.astype(np.float32)
