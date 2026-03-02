@@ -3,6 +3,7 @@ import numpy.fft as fft
 import matplotlib.pyplot as plt
 
 # from show_hologram_on_slm import show_hologram_on_slm
+from astig_phase import phase_zernike
 from fresnel_phase import fresnel_phase
 from grating_phase import grating_phase
 from line_phase import line_phase
@@ -43,14 +44,18 @@ spot_offset_y = 0      # grating offset for unassigned pixels [µm]
 # display_on_slm = False
 visualise = True
 
+phase_astig = phase_zernike(Nx, Ny, c_astig_0=0.0, c_astig_45=0.0, pupil_radius_pix=None)
+
+holo_astig = np.mod(phase_astig, 2*np.pi).astype(np.float32)
+
 holo_fresnel = fresnel_phase(Nx, Ny, dz, f, wavelength, p)
 
 # Calculate the line phase pattern and selection mask S
 holo_line, S = line_phase(Nx, Ny, L, scaling_factor, angle, A0, randomise)
 
 grating_line = grating_phase(Nx, Ny, line_offset_x, line_offset_y, scaling_factor)
-# holo_line = np.where(S == 1, holo_line, grating_line).astype(np.float32)
-holo_line = np.where(S == 1, np.mod(holo_line + grating_line + holo_fresnel, 2*np.pi).astype(np.float32), 0).astype(np.float32)
+
+holo_line = np.where(S == 1, np.mod(holo_line + grating_line + holo_fresnel + holo_astig, 2*np.pi).astype(np.float32), 0).astype(np.float32)
 
 # Grating for unassigned pixels, where S = 0
 grating_spot = grating_phase(Nx, Ny, spot_offset_x, spot_offset_y, scaling_factor)
@@ -83,7 +88,7 @@ if visualise:
     ax2.set_title("Grating phase for unassigned pixels")
     ax2.axis("off")
 
-    im3 = ax3.imshow(holo_total, cmap="gray")
+    im3 = ax3.imshow(phase_astig, cmap="gray")
     ax3.set_title("Combined phase")
     ax3.axis("off")
 

@@ -1,66 +1,52 @@
 import numpy as np
 
 
-def astig_phase(Nx, Ny, dzx_um, dzy_um, f, wavelength, pixel_pitch=15e-6):
-    """Quadratic phase mask for *cylindrical* astigmatic defocus in x and y.
+def phase_zernike(
+    Nx: int,
+    Ny: int,
+    c_astig_0: float = 0.0,
+    c_astig_45: float = 0.0,
+    pupil_radius_pix: float | None = None,
+    wrap: bool = True,
+):
+    """Phase mask from Zernike astigmatism coefficients.
 
-    This implements different focal power along x and y (like a pair of
-    orthogonal cylindrical lenses). It is *not* the pure Zernike
-    astigmatism mode but can be useful for physical modelling of
-    anisotropic defocus.
-    """
+    This constructs a phase-only hologram made from the two lowest-order
+    astigmatism Zernike modes (n = 2, m = ±2):
 
-    # Convert to metres
-    dzx = dzx_um * 1e-6
-    dzy = dzy_um * 1e-6
+        - "0° / 90°" (vertical/horizontal) astigmatism  ~  r^2 cos(2θ)
+        - "45° / 135°" (oblique) astigmatism            ~  r^2 sin(2θ)
 
-    # Pixel indices centred at zero
-    X_pix, Y_pix = np.meshgrid(
-        np.arange(Nx, dtype=np.float32) - Nx / 2.0,
-        np.arange(Ny, dtype=np.float32) - Ny / 2.0,
-    )
+    The resulting phase is
 
-    # Physical coordinates on SLM [m]
-    X = X_pix * pixel_pitch
-    Y = Y_pix * pixel_pitch
+        φ(r, θ) = 2π [ c_astig_0 * Z_astig_0(r, θ) + c_astig_45 * Z_astig_45(r, θ) ]
 
-    # Astigmatic quadratic phase:
-    #   phi(x, y) = pi/(lambda * f^2) * (dzx * x^2 + dzy * y^2)
-    coeff_x = np.pi * dzx / (wavelength * f**2)
-    coeff_y = np.pi * dzy / (wavelength * f**2)
-    phase = coeff_x * X**2 + coeff_y * Y**2
-
-    return phase.astype(np.float32)
-
-
-def zernike_astig_phase(Nx, Ny, strength=1.0, angle_deg=0.0, pupil_radius_pix=None):
-    """Zernike astigmatism phase (J = ±2, n = 2).
-
-    This generates a pure Zernike-like astigmatism term of the form
-
-        Z_astig(r, θ) ∝ r^2 cos[2 (θ - α)],
-
-    where `α` is the astigmatism axis orientation.
+    where Z_astig_0 ∝ r^2 cos(2θ) and Z_astig_45 ∝ r^2 sin(2θ). The overall
+    normalisation is chosen such that coefficients are dimensionless and of
+    order unity for typical strengths.
 
     Parameters
     ----------
     Nx, Ny : int
         SLM dimensions in pixels.
-    strength : float, optional
-        Dimensionless amplitude of the Zernike term. The phase is
-        2π * strength * Z_astig(r, θ).
-    angle_deg : float, optional
-        Astigmatism axis orientation in degrees. angle_deg = 0 gives
-        a pattern aligned with x/y; rotating by 45° swaps between the
-        "+2" and "-2" flavours.
+    c_astig_0 : float, optional
+        Coefficient for the "0° / 90°" astigmatism Zernike mode
+        (r^2 cos(2θ)).
+    c_astig_45 : float, optional
+        Coefficient for the "45° / 135°" astigmatism Zernike mode
+        (r^2 sin(2θ)).
     pupil_radius_pix : float, optional
         Radius of the (circular) pupil in pixels used for normalising
         r ∈ [0, 1]. If None, min(Nx, Ny)/2 is used.
+    wrap : bool, optional
+        If True (default), wrap the phase into [0, 2π). If False, return
+        the unwrapped phase.
 
     Returns
     -------
     phase : (Ny, Nx) float32
-        Phase mask in radians implementing the Zernike astigmatism.
+        Phase mask in radians implementing the requested Zernike
+        astigmatism combination.
     """
 
     if pupil_radius_pix is None:
@@ -72,17 +58,21 @@ def zernike_astig_phase(Nx, Ny, strength=1.0, angle_deg=0.0, pupil_radius_pix=No
         np.arange(Ny, dtype=np.float32) - Ny / 2.0,
     )
 
-    # Polar coordinates in the pupil
+    # Polar coordinates relative to the pupil
     r_pix = np.sqrt(X_pix**2 + Y_pix**2)
-    r_norm = r_pix / float(pupil_radius_pix)  # 0..~1 inside pupil
+    r_norm = r_pix / float(pupil_radius_pix)
     theta = np.arctan2(Y_pix, X_pix)
 
-    # Rotate astigmatism axis
-    alpha = np.deg2rad(angle_deg)
+    # Basic Zernike astigmatism modes (up to overall normalisation)
+    Z_astig_0 = r_norm**2 * np.cos(2.0 * theta)  # "0/90" astigmatism
+    Z_astig_45 = r_norm**2 * np.sin(2.0 * theta)  # "45/135" astigmatism
 
-    # Zernike astigmatism term (up to normalisation): r^2 cos[2(θ - α)]
-    Z = r_norm**2 * np.cos(2.0 * (theta - alpha))
+    # Linear combination with user-specified coefficients
+    Z = c_astig_0 * Z_astig_0 + c_astig_45 * Z_astig_45
 
-    phase = 2.0 * np.pi * strength * Z
-    phase_wrapped = np.mod(phase, 2.0 * np.pi)
-    return phase_wrapped.astype(np.float32)
+    phase = 2.0 * np.pi * Z
+
+    if wrap:
+        phase = np.mod(phase, 2.0 * np.pi)
+
+    return phase.astype(np.float32)
