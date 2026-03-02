@@ -28,10 +28,10 @@ scaling_factor = p / (f * wavelength)
 
 # ---------------- Line parameters ----------------
 randomise = True        # use random S with same pixels-per-row
-L = 40                  # line length in sample plane [µm]
+L = 60                  # line length in sample plane [µm]
 A0 = 1                  # row fill fraction cap [0..1]
 angle = 0              # line angle in degrees (0 = horizontal, 90 = vertical)
-line_offset_x = -20     # offset in x direction [µm]
+line_offset_x = -40     # offset in x direction [µm]
 line_offset_y = 0     # offset in y direction [µm]
 dz = 0
 
@@ -105,7 +105,4 @@ if visualise:
     ax5.set_title("Line profile")
     ax5.grid(True, alpha=0.3)
 
-    plt.show()
-
-if visualise or display_on_slm:
     plt.show()

@@ -8,16 +8,25 @@ def visualise_focal_plane(hologram, Nx, Ny, p, obj_mask):
     y = (np.arange(Ny) - Ny/2) * p
     X, Y = np.meshgrid(x, y)
     
-    w0x = 2.4e-3  # along x
+    w0x = 5e-3  # along x
     w0y = 5e-3  # along y (tighter → more oval)
     A_gauss = np.exp(-(X**2 / w0x**2 + Y**2 / w0y**2))
 
+    
+    # Quantise array in [0, 2π] to 255 discrete values.
+    phi = np.clip(hologram, 0.0, 2*np.pi)
+
+    # Quantise
+    indices = np.round(phi / (2*np.pi) * 254).astype(np.uint8)
+
+    # Map back to phase values
+    phi_q = indices.astype(np.float32) * (2*np.pi / 254)
 
     # w0 = 5e-3  # 1/e^2 radius of the Gaussian at the SLM
     # A_gauss = np.exp(-(X**2 + Y**2) / w0**2)
     # A_gauss = A_gauss / A_gauss.max() * 2 * np.pi  # normalize to 2pi for better visualization of phase
     # Gaussian illumination overfills the SLM; S only chooses the phase pattern.
-    U_pupil = A_gauss * obj_mask * np.exp(1j * hologram)
+    U_pupil = A_gauss * obj_mask * np.exp(1j * phi_q)
     
     U = fft.fftshift( fft.fft2( fft.ifftshift( U_pupil ) ) )
     I = np.abs(U) ** 2
@@ -36,7 +45,7 @@ def slm_to_img_scaling(dx_um, dy_um, Nx, Ny, scaling_factor):
     
     return ix, iy
 
-def plot_line_intensity(I, Nx, Ny, angle, L, ix, iy, ):
+def plot_line_intensity(I, Nx, Ny, angle, L, ix, iy, scaling_factor):
     # Clip to valid pixel range
     ix = max(0, min(Nx - 1, ix))
     iy = max(0, min(Ny - 1, iy))
