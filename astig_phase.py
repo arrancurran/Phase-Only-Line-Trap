@@ -4,8 +4,8 @@ import numpy as np
 def phase_zernike(
     Nx: int,
     Ny: int,
-    c_astig_0: float = 0.0,
-    c_astig_45: float = 0.0,
+    c_astig_vertical: float = 0.0,
+    c_astig_oblique: float = 0.0,
     pupil_radius_pix: float | None = None,
     wrap: bool = True,
 ):
@@ -19,9 +19,9 @@ def phase_zernike(
 
     The resulting phase is
 
-        φ(r, θ) = 2π [ c_astig_0 * Z_astig_0(r, θ) + c_astig_45 * Z_astig_45(r, θ) ]
+        φ(r, θ) = 2π [ c_astig_vertical * Z_astig_vertical(r, θ) + c_astig_oblique * Z_astig_oblique(r, θ) ]
 
-    where Z_astig_0 ∝ r^2 cos(2θ) and Z_astig_45 ∝ r^2 sin(2θ). The overall
+    where Z_astig_vertical ∝ r^2 cos(2θ) and Z_astig_oblique ∝ r^2 sin(2θ). The overall
     normalisation is chosen such that coefficients are dimensionless and of
     order unity for typical strengths.
 
@@ -29,10 +29,10 @@ def phase_zernike(
     ----------
     Nx, Ny : int
         SLM dimensions in pixels.
-    c_astig_0 : float, optional
+    c_astig_vertical : float, optional
         Coefficient for the "0° / 90°" astigmatism Zernike mode
         (r^2 cos(2θ)).
-    c_astig_45 : float, optional
+    c_astig_oblique : float, optional
         Coefficient for the "45° / 135°" astigmatism Zernike mode
         (r^2 sin(2θ)).
     pupil_radius_pix : float, optional
@@ -64,11 +64,11 @@ def phase_zernike(
     theta = np.arctan2(Y_pix, X_pix)
 
     # Basic Zernike astigmatism modes (up to overall normalisation)
-    Z_astig_0 = r_norm**2 * np.cos(2.0 * theta)  # "0/90" astigmatism
-    Z_astig_45 = r_norm**2 * np.sin(2.0 * theta)  # "45/135" astigmatism
+    Z_astig_vertical = r_norm**2 * np.cos(2.0 * theta)  # "0/90" vertical astigmatism
+    Z_astig_oblique = r_norm**2 * np.sin(2.0 * theta)  # "45/135" oblique astigmatism
 
     # Linear combination with user-specified coefficients
-    Z = c_astig_0 * Z_astig_0 + c_astig_45 * Z_astig_45
+    Z = c_astig_vertical * Z_astig_vertical + c_astig_oblique * Z_astig_oblique
 
     phase = 2.0 * np.pi * Z
 

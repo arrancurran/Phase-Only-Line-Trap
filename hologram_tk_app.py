@@ -8,7 +8,6 @@ import numpy as np
 
 from build_hologram import build_hologram
 from show_hologram_on_slm import show_hologram_on_slm
-from fresnel_phase import fresnel_phase
 
 
 # ---------------- SLM / optical parameters (hard-coded) ----------------
@@ -28,6 +27,8 @@ DEFAULTS = {
 	"line_offset_y": 0.0,
 	"spot_offset_x": 20.0,
 	"spot_offset_y": 0.0,
+	"astig_vertical": 0.0,
+	"astig_oblique": 0.0,
 }
 
 A0 = 1.0
@@ -109,8 +110,30 @@ class HologramApp:
 		soy_entry.grid(row=row, column=1, sticky="w", padx=pad, pady=pad)
 		self.entry_to_name[soy_entry] = "spot_offset_y"
 
+		row += 1
+		ttk.Label(self.master, text="astig vertical").grid(row=row, column=0, sticky="e", padx=pad, pady=pad)
+		astig_vertical_entry = ttk.Entry(self.master, textvariable=self.vars["astig_vertical"], width=10)
+		astig_vertical_entry.grid(row=row, column=1, sticky="w", padx=pad, pady=pad)
+		self.entry_to_name[astig_vertical_entry] = "astig_vertical"
+
+		row += 1
+		ttk.Label(self.master, text="astig oblique").grid(row=row, column=0, sticky="e", padx=pad, pady=pad)
+		astig_oblique_entry = ttk.Entry(self.master, textvariable=self.vars["astig_oblique"], width=10)
+		astig_oblique_entry.grid(row=row, column=1, sticky="w", padx=pad, pady=pad)
+		self.entry_to_name[astig_oblique_entry] = "astig_oblique"
+
 		# Bind updates: when entry loses focus or user presses Return, rebuild hologram
-		for entry in (l_entry, angle_entry, dz_entry, lox_entry, loy_entry, sox_entry, soy_entry):
+		for entry in (
+			l_entry,
+			angle_entry,
+			dz_entry,
+			lox_entry,
+			loy_entry,
+			sox_entry,
+			soy_entry,
+			astig_vertical_entry,
+			astig_oblique_entry,
+		):
 			entry.bind("<Return>", lambda event: self.update_hologram())
 			entry.bind("<FocusOut>", lambda event: self.update_hologram())
 			# Use Up/Down arrow keys to increment/decrement the value
@@ -178,16 +201,17 @@ class HologramApp:
 		line_offset_y = self._get_float("line_offset_y")
 		spot_offset_x = self._get_float("spot_offset_x")
 		spot_offset_y = self._get_float("spot_offset_y")
-
-		# Compute Fresnel phase (defocus) if needed
-		holo_fresnel = None
-		if dz != 0.0:
-			holo_fresnel = fresnel_phase(Nx, Ny, dz, f, wavelength, p)
+		astig_vertical = self._get_float("astig_vertical")
+		astig_oblique = self._get_float("astig_oblique")
 
 		holo_total, _ = build_hologram(
 			Nx,
 			Ny,
+			f, 
+   			wavelength,
+      		p,
 			scaling_factor,
+			dz,
 			L,
 			A0,
 			angle,
@@ -196,7 +220,8 @@ class HologramApp:
 			line_offset_y=line_offset_y,
 			spot_offset_x=spot_offset_x,
 			spot_offset_y=spot_offset_y,
-			holo_fresnel=holo_fresnel,
+			astig_vertical=astig_vertical,
+			astig_oblique=astig_oblique
 		)
 
 		# Close previous SLM figure, if any, to avoid accumulating windows

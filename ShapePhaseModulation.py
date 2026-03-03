@@ -44,7 +44,7 @@ spot_offset_y = 0      # grating offset for unassigned pixels [µm]
 # display_on_slm = False
 visualise = True
 
-phase_astig = phase_zernike(Nx, Ny, c_astig_0=0.0, c_astig_45=0.0, pupil_radius_pix=None)
+phase_astig = phase_zernike(Nx, Ny, c_astig_vertical=0.0, c_astig_oblique=0.0, pupil_radius_pix=None)
 
 holo_astig = np.mod(phase_astig, 2*np.pi).astype(np.float32)
 

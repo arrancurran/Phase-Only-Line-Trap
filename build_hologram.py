@@ -2,12 +2,18 @@ import numpy as np
 
 from line_phase import line_phase
 from grating_phase import grating_phase
+from fresnel_phase import fresnel_phase
+from astig_phase import phase_zernike
 
 
 def build_hologram(
     Nx,
     Ny,
+    f, 
+    wavelength,
+    p,
     scaling_factor,
+    dz,
     L,
     A0,
     angle,
@@ -16,8 +22,10 @@ def build_hologram(
     line_offset_y=0,
     spot_offset_x=0,
     spot_offset_y=0,
-    holo_fresnel=None,
+    astig_vertical=0.0,
+    astig_oblique=0.0,
 ):
+    
     """Build a phase-only hologram for a line trap plus background spot.
 
     Parameters
@@ -50,24 +58,25 @@ def build_hologram(
     # Calculate the line phase pattern and selection mask S
     holo_line, S = line_phase(Nx, Ny, L, scaling_factor, angle, A0, randomise)
     
-
     grating_line = grating_phase(Nx, Ny, line_offset_x, line_offset_y, scaling_factor)
-
-    # Optionally add a Fresnel (defocus) phase only inside the line region
-    if holo_fresnel is not None:
-        phase_line = holo_line + grating_line + holo_fresnel
-    else:
-        phase_line = holo_line + grating_line
-
-    # Combine line, grating (and optional Fresnel) inside the selected region
-    holo_line = np.where(
-        S == 1,
-        np.mod(phase_line, 2 * np.pi).astype(np.float32),
-        0,
-    ).astype(np.float32)
-
+    
     # Grating for unassigned pixels, where S = 0
     grating_spot = grating_phase(Nx, Ny, spot_offset_x, spot_offset_y, scaling_factor)
+
+    if dz != 0.0:
+        fresnel_line = fresnel_phase(Nx, Ny, dz_um=dz, f=f, wavelength=wavelength, pixel_pitch=p)
+        holo_line = np.where(S == 1, np.mod(holo_line + fresnel_line + grating_line, 2 * np.pi).astype(np.float32), 0).astype(np.float32)
+    else:
+        holo_line = np.where(S == 1, np.mod(holo_line + grating_line, 2 * np.pi).astype(np.float32), 0).astype(np.float32)
+    
+    if astig_vertical != 0.0 or astig_oblique != 0.0:
+        phase_astig = phase_zernike(Nx, Ny, c_astig_vertical=astig_vertical, c_astig_oblique=astig_oblique, pupil_radius_pix=None)
+        
+        holo_line = np.where(S == 1, np.mod(holo_line + phase_astig, 2 * np.pi).astype(np.float32), holo_line).astype(np.float32)
+        
+        grating_spot = np.mod(grating_spot + phase_astig, 2 * np.pi).astype(np.float32)
+        
+
 
     # Combine phases: where S=1 use holo_line, elsewhere use grating_spot
     holo_total = np.where(S == 0, grating_spot, holo_line).astype(np.float32)
