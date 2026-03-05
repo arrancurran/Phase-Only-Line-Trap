@@ -3,9 +3,69 @@ import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.use("TkAgg")
 
+
+# Default 32-point blaze calibration curve (0..1).
+BLAZE_32_DEFAULT = np.array([
+    0.000000,
+    0.057705,
+    0.114756,
+    0.170501,
+    0.224285,
+    0.275457,
+    0.323361,
+    0.367346,
+    0.406758,
+    0.440943,
+    0.469248,
+    0.491020,
+    0.505781,
+    0.514422,
+    0.518472,
+    0.519466,
+    0.518936,
+    0.518416,
+    0.519441,
+    0.523543,
+    0.532256,
+    0.547115,
+    0.569651,
+    0.600860,
+    0.640003,
+    0.685993,
+    0.737743,
+    0.794168,
+    0.854179,
+    0.916692,
+    0.980618,
+    1.000000,
+], dtype=float)
+
+
+_blaze_32 = BLAZE_32_DEFAULT.copy()
+
+
+def get_blaze_32():
+    """Return a copy of the current 32-point blaze curve."""
+    return _blaze_32.copy()
+
+
+def set_blaze_32(blaze_32):
+    """Set the current 32-point blaze curve.
+
+    Parameters
+    ----------
+    blaze_32 : array-like, shape (N,)
+        New blaze curve values in [0, 1].
+    """
+    global _blaze_32
+    arr = np.asarray(blaze_32, dtype=float).ravel()
+    if arr.size < 2:
+        raise ValueError("blaze_32 must have at least two points")
+    _blaze_32 = arr
+
+
 def show_hologram_on_slm(hologram, offset_x=2560, offset_y=0, slm_width=512, slm_height=512):
-    
-    blaze_32 = np.array([0.000000, 0.057705, 0.114756, 0.170501, 0.224285, 0.275457, 0.323361, 0.367346, 0.406758, 0.440943, 0.469248, 0.491020, 0.505781, 0.514422, 0.518472, 0.519466, 0.518936, 0.518416, 0.519441, 0.523543, 0.532256, 0.547115, 0.569651, 0.600860, 0.640003, 0.685993, 0.737743, 0.794168, 0.854179, 0.916692, 0.980618, 1.000000])
+    blaze_32 = _blaze_32
     blaze = np.interp(np.arange(256), np.linspace(0, 255, len(blaze_32)), blaze_32)
 
     # Convert phase to 8-bit values and apply blaze

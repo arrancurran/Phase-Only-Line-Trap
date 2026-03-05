@@ -29,10 +29,10 @@ scaling_factor = p / (f * wavelength)
 
 # ---------------- Line parameters ----------------
 randomise = True        # use random S with same pixels-per-row
-L = 60                  # line length in sample plane [µm]
+L = 30                  # line length in sample plane [µm]
 A0 = 1                  # row fill fraction cap [0..1]
 angle = 0              # line angle in degrees (0 = horizontal, 90 = vertical)
-line_offset_x = -40     # offset in x direction [µm]
+line_offset_x = -10     # offset in x direction [µm]
 line_offset_y = 0     # offset in y direction [µm]
 dz = 0
 
@@ -44,7 +44,7 @@ spot_offset_y = 0      # grating offset for unassigned pixels [µm]
 # display_on_slm = False
 visualise = True
 
-phase_astig = phase_zernike(Nx, Ny, c_astig_vertical=0.0, c_astig_oblique=0.0, pupil_radius_pix=None)
+phase_astig = phase_zernike(Nx, Ny, c_astig_vertical=0.0, c_astig_oblique=-2.0, pupil_radius_pix=None)
 
 holo_astig = np.mod(phase_astig, 2*np.pi).astype(np.float32)
 
@@ -59,6 +59,8 @@ holo_line = np.where(S == 1, np.mod(holo_line + grating_line + holo_fresnel + ho
 
 # Grating for unassigned pixels, where S = 0
 grating_spot = grating_phase(Nx, Ny, spot_offset_x, spot_offset_y, scaling_factor)
+
+grating_spot = np.mod(grating_spot + holo_astig, 2*np.pi).astype(np.float32)
 
 # Combine phases: where S=1 use holo_line, elsewhere use grating_spot
 holo_total = np.where(S == 0, grating_spot, holo_line).astype(np.float32)
@@ -88,13 +90,13 @@ if visualise:
     ax2.set_title("Grating phase for unassigned pixels")
     ax2.axis("off")
 
-    im3 = ax3.imshow(phase_astig, cmap="gray")
+    im3 = ax3.imshow(holo_total, cmap="gray")
     ax3.set_title("Combined phase")
     ax3.axis("off")
 
     I = visualise_focal_plane(holo_total, Nx, Ny, p, obj_mask)
     
-    im4 = ax4.imshow(I, cmap="gray", vmax=0.001)
+    im4 = ax4.imshow(I, cmap="gray", vmax=0.01)
     ax4.set_title("Predicted Intensity at Focus")
     ax4.axis("off")
 
