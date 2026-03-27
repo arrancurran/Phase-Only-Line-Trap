@@ -55,7 +55,7 @@ def randomize_mask(S, angle):
 
     # RNG for shuffling. Using a generator without a fixed seed so
     # each call can produce a different randomisation pattern.
-    rng = np.random.default_rng()
+    rng = np.random.default_rng(0)
     S_rand = np.zeros_like(S, dtype=np.uint8)
 
     # Fast paths for purely horizontal/vertical lines: preserve the
