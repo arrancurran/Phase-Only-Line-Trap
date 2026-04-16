@@ -3,6 +3,7 @@ from tkinter import ttk
 
 import json
 import os
+import pickle
 
 import matplotlib
 matplotlib.use("TkAgg")
@@ -45,6 +46,7 @@ SLM_HEIGHT = Ny
 
 
 SETTINGS_PATH = os.path.join(os.path.dirname(__file__), "hologram_settings.json")
+RNG_STATE_PATH = os.path.join(os.path.dirname(__file__), "rng_state.pkl")
 
 
 class HologramApp:
@@ -57,6 +59,9 @@ class HologramApp:
 
 		# Randomise flag for the line selection mask
 		self.randomise = False
+
+		# Load saved RNG flag
+		self.load_saved_rng = True
 
 		# Tk variables
 		self.vars = {
@@ -76,6 +81,9 @@ class HologramApp:
 			self.randomise_button.config(text="Randomise: ON")
 		else:
 			self.randomise_button.config(text="Randomise: OFF")
+		
+		# Make sure load_saved_rng checkbox matches loaded state
+		self.load_saved_rng_var.set(self.load_saved_rng)
 		# Ensure that closing the main window also closes the SLM figure
 		self.master.protocol("WM_DELETE_WINDOW", self.on_close)
 		# Build initial hologram
@@ -197,6 +205,16 @@ class HologramApp:
 		self.randomise_button.grid(row=row, column=0, columnspan=2, pady=(pad * 2, pad))
 
 		row += 1
+		self.load_saved_rng_var = tk.BooleanVar(value=self.load_saved_rng)
+		self.load_saved_rng_checkbox = ttk.Checkbutton(
+			self.master,
+			text="Load saved RNG on randomize",
+			variable=self.load_saved_rng_var,
+			command=self._on_load_saved_rng_toggled
+		)
+		self.load_saved_rng_checkbox.grid(row=row, column=0, columnspan=2, sticky="w", padx=pad, pady=(pad, 0))
+
+		row += 1
 		quit_btn = ttk.Button(self.master, text="Quit", command=self.on_close)
 		quit_btn.grid(row=row, column=0, columnspan=2, pady=(0, pad))
 
@@ -267,6 +285,9 @@ class HologramApp:
 		# Restore randomise flag
 		if "randomise" in data:
 			self.randomise = bool(data["randomise"])
+
+		# Do not restore load_saved_rng from settings.
+		# App start default is to load saved RNG.
 
 		# Restore blaze curve if present
 		blaze32 = data.get("blaze32")
@@ -405,6 +426,19 @@ class HologramApp:
 		astig_vertical = self._get_float("astig_vertical")
 		astig_oblique = self._get_float("astig_oblique")
 
+		# Load saved RNG state if requested and randomisation is enabled
+		rng = None
+		if self.randomise:
+			if self.load_saved_rng:
+				rng = self._load_rng_state()
+				if rng is None:
+					print("Warning: Load saved RNG is enabled but no valid saved state was found. Randomisation skipped.")
+					return
+			else:
+				# Create a fresh RNG and save it immediately for later reuse.
+				rng = np.random.default_rng()
+				self._save_rng_state(rng)
+
 		holo_total, _ = build_hologram(
 			Nx,
 			Ny,
@@ -422,7 +456,8 @@ class HologramApp:
 			spot_offset_x=spot_offset_x,
 			spot_offset_y=spot_offset_y,
 			astig_vertical=astig_vertical,
-			astig_oblique=astig_oblique
+			astig_oblique=astig_oblique,
+			rng=rng
 		)
 
 		# Close previous SLM figure, if any, to avoid accumulating windows
@@ -450,6 +485,28 @@ class HologramApp:
 
 		self.update_hologram()
 
+	def _on_load_saved_rng_toggled(self):
+		"""Update the load_saved_rng flag when checkbox is toggled."""
+		self.load_saved_rng = self.load_saved_rng_var.get()
+
+	def _load_rng_state(self):
+		"""Load RNG state from disk."""
+		try:
+			with open(RNG_STATE_PATH, "rb") as fp:
+				return pickle.load(fp)
+		except FileNotFoundError:
+			return None
+		except Exception as e:
+			print(f"Error loading RNG state: {e}")
+			return None
+
+	def _save_rng_state(self, rng):
+		"""Save the provided RNG state to disk."""
+		try:
+			with open(RNG_STATE_PATH, "wb") as fp:
+				pickle.dump(rng, fp)
+		except Exception as e:
+			print(f"Error saving RNG state: {e}")
 	def on_close(self):
 		"""Close the SLM window and then the Tk app."""
 		# Persist current settings to disk
@@ -466,7 +523,7 @@ class HologramApp:
 		self.master.destroy()
 
 	def _save_settings(self):
-		"""Save current vars, randomise flag, and blaze curve to disk."""
+		"""Save current vars, randomise flag, load_saved_rng flag, and blaze curve to disk."""
 		data = {}
 		# Save scalar variables as floats
 		vars_data = {}
@@ -479,6 +536,7 @@ class HologramApp:
 		data["vars"] = vars_data
 
 		data["randomise"] = bool(self.randomise)
+		data["load_saved_rng"] = bool(self.load_saved_rng)
 		# Save the full 32-point blaze curve
 		try:
 			data["blaze32"] = get_blaze_32().tolist()

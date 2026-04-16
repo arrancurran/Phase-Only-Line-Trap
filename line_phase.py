@@ -1,5 +1,7 @@
 import numpy as np
-def line_phase(Nx, Ny, L_um, scaling_factor, angle, A0, randomize_S):
+
+
+def line_phase(Nx, Ny, L_um, scaling_factor, angle, A0, randomize_S, rng=None):
     length = L_um * 1e-6  # µm -> m
     theta = np.deg2rad(angle)
     
@@ -35,27 +37,37 @@ def line_phase(Nx, Ny, L_um, scaling_factor, angle, A0, randomize_S):
     S = (np.abs(u_norm) < A_rho).astype(np.uint8)
 
     # Replace S with a random distribution that keeps the same number of "on" pixels in each row.
-    if randomize_S: S = randomize_mask(S, angle)
+    if randomize_S: S = randomize_mask(S, angle, rng)
         
     # Phase for the line trap, applied only where S = 1 ( % 2pi)
     line_phase = np.mod(phi_rho * S, 2*np.pi).astype(np.float32)
 
     return line_phase, S
 
-def randomize_mask(S, angle):
+def randomize_mask(S, angle, rng=None):
     """Randomize a binary mask S along the line direction.
 
     For any angle, we preserve the number of "on" pixels in each
     slice orthogonal to the line (i.e. constant v in the rotated
     coordinates used in `line_phase`), but shuffle their positions
     along the line (u).
+    
+    Parameters
+    ----------
+    S : ndarray
+        Binary selection mask.
+    angle : float
+        Line angle in degrees.
+    rng : numpy.random.Generator, optional
+        Random number generator. If None, creates a new one with seed 0.
     """
     S = np.asarray(S)
     ny, nx = S.shape
 
-    # RNG for shuffling. Using a generator without a fixed seed so
-    # each call can produce a different randomisation pattern.
-    rng = np.random.default_rng(0)
+    # RNG for shuffling. If not provided, create a new generator with seed 0.
+    if rng is None:
+        rng = np.random.default_rng(0)
+    
     S_rand = np.zeros_like(S, dtype=np.uint8)
 
     # Fast paths for purely horizontal/vertical lines: preserve the

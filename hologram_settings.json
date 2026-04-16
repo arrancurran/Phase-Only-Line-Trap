@@ -11,6 +11,7 @@
     "astig_oblique": -0.2
   },
   "randomise": true,
+  "load_saved_rng": true,
   "blaze32": [
     0.0,
     0.06510621398339164,

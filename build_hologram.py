@@ -24,6 +24,7 @@ def build_hologram(
     spot_offset_y=0,
     astig_vertical=0.0,
     astig_oblique=0.0,
+    rng=None,
 ):
     
     """Build a phase-only hologram for a line trap plus background spot.
@@ -56,7 +57,7 @@ def build_hologram(
     """
 
     # Calculate the line phase pattern and selection mask S
-    holo_line, S = line_phase(Nx, Ny, L, scaling_factor, angle, A0, randomise)
+    holo_line, S = line_phase(Nx, Ny, L, scaling_factor, angle, A0, randomise, rng=rng)
     
     grating_line = grating_phase(Nx, Ny, line_offset_x, line_offset_y, scaling_factor)
     
