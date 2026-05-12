@@ -28,23 +28,24 @@ obj_mask = (r_pix <= obj_at_slm_px / 2).astype(np.float32)
 scaling_factor = p / (f * wavelength)
 
 # ---------------- Line parameters ----------------
-randomise = True        # use random S with same pixels-per-row
+randomise = False        # use random S with same pixels-per-row
 L = 30                  # line length in sample plane [µm]
 A0 = 1                  # row fill fraction cap [0..1]
 angle = 0              # line angle in degrees (0 = horizontal, 90 = vertical)
-line_offset_x = -10     # offset in x direction [µm]
+line_offset_x = 0     # offset in x direction [µm]
 line_offset_y = 0     # offset in y direction [µm]
 dz = 0
 
 # ---------------- Spot parameters ----------------
-spot_offset_x = 20      # grating offset for unassigned pixels [µm]
+spot_offset_x = 1      # grating offset for unassigned pixels [µm]
 spot_offset_y = 0      # grating offset for unassigned pixels [µm]       
 
 # ---------------- Plots parameters ----------------
 # display_on_slm = False
 visualise = True
+save_images = True
 
-phase_astig = phase_zernike(Nx, Ny, c_astig_vertical=0.0, c_astig_oblique=-2.0, pupil_radius_pix=None)
+phase_astig = phase_zernike(Nx, Ny, c_astig_vertical=0.0, c_astig_oblique=-0.0, pupil_radius_pix=None)
 
 holo_astig = np.mod(phase_astig, 2*np.pi).astype(np.float32)
 
@@ -113,3 +114,9 @@ if visualise:
     ax5.grid(True, alpha=0.3)
 
     plt.show()
+
+if save_images:
+    plt.imsave("holo_line.png", holo_line, cmap="gray")
+    plt.imsave("grating_spot.png", grating_spot, cmap="gray")
+    plt.imsave("holo_total.png", holo_total, cmap="gray")
+    plt.imsave("intensity_at_focus.png", I, cmap="gray", vmax=0.01)
