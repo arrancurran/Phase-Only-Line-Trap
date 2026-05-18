@@ -45,7 +45,7 @@ DEFAULTS = {
 A0 = 1.0
 
 # Hard-coded SLM window placement and size (in screen pixels)
-SLM_OFFSET_X = 560  # X-position of the SLM window (e.g. second monitor)
+SLM_OFFSET_X = 2560  # X-position of the SLM window (e.g. second monitor)
 SLM_OFFSET_Y = 0  # Y-position of the SLM window
 SLM_WIDTH = Nx
 SLM_HEIGHT = Ny

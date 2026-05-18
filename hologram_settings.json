@@ -9,9 +9,9 @@
     "spot_offset_y": 0.0,
     "spot_2_offset_x": 0.0,
     "spot_2_offset_y": 5.0,
-    "spot_3_offset_x": 0.0,
+    "spot_3_offset_x": 3.0,
     "spot_3_offset_y": 0.0,
-    "spot_4_offset_x": 0.0,
+    "spot_4_offset_x": 3.0,
     "spot_4_offset_y": 0.0,
     "astig_vertical": -0.22,
     "astig_oblique": -0.2
