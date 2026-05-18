@@ -22,12 +22,22 @@ def build_hologram(
     line_offset_y=0,
     spot_offset_x=0,
     spot_offset_y=0,
+    spot_2_offset_x=0,
+    spot_2_offset_y=0,
+    spot_3_offset_x=0,
+    spot_3_offset_y=0,
+    spot_4_offset_x=0,
+    spot_4_offset_y=0,
     astig_vertical=0.0,
     astig_oblique=0.0,
+    spot_1_weight=1.0,
+    spot_2_weight=1.0,
+    spot_3_weight=1.0,
+    spot_4_weight=1.0,
     rng=None,
 ):
     
-    """Build a phase-only hologram for a line trap plus background spot.
+    """Build a phase-only hologram for a line trap plus four background spots.
 
     Parameters
     ----------
@@ -46,7 +56,15 @@ def build_hologram(
     line_offset_x, line_offset_y : float, optional
         Grating offsets for the line (µm).
     spot_offset_x, spot_offset_y : float, optional
-        Grating offsets for the background spot (µm).
+        Grating offsets for Spot 1 (µm).
+    spot_2_offset_x, spot_2_offset_y : float, optional
+        Grating offsets for Spot 2 (µm).
+    spot_3_offset_x, spot_3_offset_y : float, optional
+        Grating offsets for Spot 3 (µm).
+    spot_4_offset_x, spot_4_offset_y : float, optional
+        Grating offsets for Spot 4 (µm).
+    spot_1_weight, spot_2_weight, spot_3_weight, spot_4_weight : float, optional
+        Relative amplitudes A_n for each spot in the complex-field sum.
 
     Returns
     -------
@@ -61,8 +79,10 @@ def build_hologram(
     
     grating_line = grating_phase(Nx, Ny, line_offset_x, line_offset_y, scaling_factor)
     
-    # Grating for unassigned pixels, where S = 0
-    grating_spot = grating_phase(Nx, Ny, spot_offset_x, spot_offset_y, scaling_factor)
+    grating_spot_1 = grating_phase(Nx, Ny, spot_offset_x, spot_offset_y, scaling_factor)
+    grating_spot_2 = grating_phase(Nx, Ny, spot_2_offset_x, spot_2_offset_y, scaling_factor)
+    grating_spot_3 = grating_phase(Nx, Ny, spot_3_offset_x, spot_3_offset_y, scaling_factor)
+    grating_spot_4 = grating_phase(Nx, Ny, spot_4_offset_x, spot_4_offset_y, scaling_factor)
 
     if dz != 0.0:
         fresnel_line = fresnel_phase(Nx, Ny, dz_um=dz, f=f, wavelength=wavelength, pixel_pitch=p)
@@ -75,11 +95,24 @@ def build_hologram(
         
         holo_line = np.where(S == 1, np.mod(holo_line + phase_astig, 2 * np.pi).astype(np.float32), holo_line).astype(np.float32)
         
-        grating_spot = np.mod(grating_spot + phase_astig, 2 * np.pi).astype(np.float32)
+        grating_spot_1 = np.mod(grating_spot_1 + phase_astig, 2 * np.pi).astype(np.float32)
+        grating_spot_2 = np.mod(grating_spot_2 + phase_astig, 2 * np.pi).astype(np.float32)
+        grating_spot_3 = np.mod(grating_spot_3 + phase_astig, 2 * np.pi).astype(np.float32)
+        grating_spot_4 = np.mod(grating_spot_4 + phase_astig, 2 * np.pi).astype(np.float32)
         
+    # Combine spot holograms using:
+    # Phi_comb = arg(sum_n A_n * exp(i * Phi_n)).
+    spot_field_sum = (
+        spot_1_weight * np.exp(1j * grating_spot_1)
+        + spot_2_weight * np.exp(1j * grating_spot_2)
+        + spot_3_weight * np.exp(1j * grating_spot_3)
+        + spot_4_weight * np.exp(1j * grating_spot_4)
+    )
 
+    holo_comb = np.angle(spot_field_sum).astype(np.float32)
+    holo_comb = np.mod(holo_comb, 2 * np.pi).astype(np.float32)
 
     # Combine phases: where S=1 use holo_line, elsewhere use grating_spot
-    holo_total = np.where(S == 0, grating_spot, holo_line).astype(np.float32)
+    holo_total = np.where(S == 0, holo_comb, holo_line).astype(np.float32)
 
     return holo_total, S

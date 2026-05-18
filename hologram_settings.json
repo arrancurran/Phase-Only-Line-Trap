@@ -1,12 +1,18 @@
 {
   "vars": {
     "L": 20.0,
-    "angle": -24.0,
+    "angle": 0.0,
     "dz": 0.0,
-    "line_offset_x": -39.0,
+    "line_offset_x": 0.0,
     "line_offset_y": 0.0,
-    "spot_offset_x": 0.0,
-    "spot_offset_y": -70.0,
+    "spot_offset_x": 5.0,
+    "spot_offset_y": 0.0,
+    "spot_2_offset_x": 0.0,
+    "spot_2_offset_y": 5.0,
+    "spot_3_offset_x": 0.0,
+    "spot_3_offset_y": 0.0,
+    "spot_4_offset_x": 0.0,
+    "spot_4_offset_y": 0.0,
     "astig_vertical": -0.22,
     "astig_oblique": -0.2
   },

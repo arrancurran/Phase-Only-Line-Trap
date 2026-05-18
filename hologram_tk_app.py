@@ -32,6 +32,12 @@ DEFAULTS = {
 	"line_offset_y": 0.0,
 	"spot_offset_x": 20.0,
 	"spot_offset_y": 0.0,
+	"spot_2_offset_x": 0.0,
+	"spot_2_offset_y": 20.0,
+	"spot_3_offset_x": -20.0,
+	"spot_3_offset_y": 0.0,
+	"spot_4_offset_x": 0.0,
+	"spot_4_offset_y": -20.0,
 	"astig_vertical": 0.0,
 	"astig_oblique": 0.0,
 }
@@ -39,7 +45,7 @@ DEFAULTS = {
 A0 = 1.0
 
 # Hard-coded SLM window placement and size (in screen pixels)
-SLM_OFFSET_X = 2560  # X-position of the SLM window (e.g. second monitor)
+SLM_OFFSET_X = 560  # X-position of the SLM window (e.g. second monitor)
 SLM_OFFSET_Y = 0  # Y-position of the SLM window
 SLM_WIDTH = Nx
 SLM_HEIGHT = Ny
@@ -93,57 +99,105 @@ class HologramApp:
 		pad = 5
 
 		row = 0
-		ttk.Label(self.master, text="L (µm)").grid(row=row, column=0, sticky="e", padx=pad, pady=pad)
-		l_entry = ttk.Entry(self.master, textvariable=self.vars["L"], width=10)
-		l_entry.grid(row=row, column=1, sticky="w", padx=pad, pady=pad)
+		line_trap_frame = ttk.LabelFrame(self.master, text="Line Trap")
+		line_trap_frame.grid(row=row, column=0, columnspan=2, padx=pad, pady=pad, sticky="nsew")
+
+		line_row = 0
+		ttk.Label(line_trap_frame, text="L (µm)").grid(row=line_row, column=0, sticky="e", padx=pad, pady=pad)
+		l_entry = ttk.Entry(line_trap_frame, textvariable=self.vars["L"], width=10)
+		l_entry.grid(row=line_row, column=1, sticky="w", padx=pad, pady=pad)
 		self.entry_to_name[l_entry] = "L"
 
-		row += 1
-		ttk.Label(self.master, text="Angle (deg)").grid(row=row, column=0, sticky="e", padx=pad, pady=pad)
-		angle_entry = ttk.Entry(self.master, textvariable=self.vars["angle"], width=10)
-		angle_entry.grid(row=row, column=1, sticky="w", padx=pad, pady=pad)
+		line_row += 1
+		ttk.Label(line_trap_frame, text="Angle (deg)").grid(row=line_row, column=0, sticky="e", padx=pad, pady=pad)
+		angle_entry = ttk.Entry(line_trap_frame, textvariable=self.vars["angle"], width=10)
+		angle_entry.grid(row=line_row, column=1, sticky="w", padx=pad, pady=pad)
 		self.entry_to_name[angle_entry] = "angle"
 
-		row += 1
-		ttk.Label(self.master, text="dz (µm)").grid(row=row, column=0, sticky="e", padx=pad, pady=pad)
-		dz_entry = ttk.Entry(self.master, textvariable=self.vars["dz"], width=10)
-		dz_entry.grid(row=row, column=1, sticky="w", padx=pad, pady=pad)
+		line_row += 1
+		ttk.Label(line_trap_frame, text="dz (µm)").grid(row=line_row, column=0, sticky="e", padx=pad, pady=pad)
+		dz_entry = ttk.Entry(line_trap_frame, textvariable=self.vars["dz"], width=10)
+		dz_entry.grid(row=line_row, column=1, sticky="w", padx=pad, pady=pad)
 		self.entry_to_name[dz_entry] = "dz"
 
-		row += 1
-		ttk.Label(self.master, text="Line offset X (µm)").grid(row=row, column=0, sticky="e", padx=pad, pady=pad)
-		lox_entry = ttk.Entry(self.master, textvariable=self.vars["line_offset_x"], width=10)
-		lox_entry.grid(row=row, column=1, sticky="w", padx=pad, pady=pad)
+		line_row += 1
+		ttk.Label(line_trap_frame, text="Line offset X (µm)").grid(row=line_row, column=0, sticky="e", padx=pad, pady=pad)
+		lox_entry = ttk.Entry(line_trap_frame, textvariable=self.vars["line_offset_x"], width=10)
+		lox_entry.grid(row=line_row, column=1, sticky="w", padx=pad, pady=pad)
 		self.entry_to_name[lox_entry] = "line_offset_x"
 
-		row += 1
-		ttk.Label(self.master, text="Line offset Y (µm)").grid(row=row, column=0, sticky="e", padx=pad, pady=pad)
-		loy_entry = ttk.Entry(self.master, textvariable=self.vars["line_offset_y"], width=10)
-		loy_entry.grid(row=row, column=1, sticky="w", padx=pad, pady=pad)
+		line_row += 1
+		ttk.Label(line_trap_frame, text="Line offset Y (µm)").grid(row=line_row, column=0, sticky="e", padx=pad, pady=pad)
+		loy_entry = ttk.Entry(line_trap_frame, textvariable=self.vars["line_offset_y"], width=10)
+		loy_entry.grid(row=line_row, column=1, sticky="w", padx=pad, pady=pad)
 		self.entry_to_name[loy_entry] = "line_offset_y"
 
 		row += 1
-		ttk.Label(self.master, text="Spot offset X (µm)").grid(row=row, column=0, sticky="e", padx=pad, pady=pad)
-		sox_entry = ttk.Entry(self.master, textvariable=self.vars["spot_offset_x"], width=10)
-		sox_entry.grid(row=row, column=1, sticky="w", padx=pad, pady=pad)
+		spots_frame = ttk.LabelFrame(self.master, text="Spots")
+		spots_frame.grid(row=row, column=0, columnspan=2, padx=pad, pady=pad, sticky="nsew")
+
+		spots_row = 0
+		ttk.Label(spots_frame, text="Spot 1 X (µm)").grid(row=spots_row, column=0, sticky="e", padx=pad, pady=pad)
+		sox_entry = ttk.Entry(spots_frame, textvariable=self.vars["spot_offset_x"], width=10)
+		sox_entry.grid(row=spots_row, column=1, sticky="w", padx=pad, pady=pad)
 		self.entry_to_name[sox_entry] = "spot_offset_x"
 
-		row += 1
-		ttk.Label(self.master, text="Spot offset Y (µm)").grid(row=row, column=0, sticky="e", padx=pad, pady=pad)
-		soy_entry = ttk.Entry(self.master, textvariable=self.vars["spot_offset_y"], width=10)
-		soy_entry.grid(row=row, column=1, sticky="w", padx=pad, pady=pad)
+		spots_row += 1
+		ttk.Label(spots_frame, text="Spot 1 Y (µm)").grid(row=spots_row, column=0, sticky="e", padx=pad, pady=pad)
+		soy_entry = ttk.Entry(spots_frame, textvariable=self.vars["spot_offset_y"], width=10)
+		soy_entry.grid(row=spots_row, column=1, sticky="w", padx=pad, pady=pad)
 		self.entry_to_name[soy_entry] = "spot_offset_y"
 
-		row += 1
-		ttk.Label(self.master, text="astig vertical").grid(row=row, column=0, sticky="e", padx=pad, pady=pad)
-		astig_vertical_entry = ttk.Entry(self.master, textvariable=self.vars["astig_vertical"], width=10)
-		astig_vertical_entry.grid(row=row, column=1, sticky="w", padx=pad, pady=pad)
-		self.entry_to_name[astig_vertical_entry] = "astig_vertical"
+		spots_row += 1
+		ttk.Label(spots_frame, text="Spot 2 X (µm)").grid(row=spots_row, column=0, sticky="e", padx=pad, pady=pad)
+		spot_2_x_entry = ttk.Entry(spots_frame, textvariable=self.vars["spot_2_offset_x"], width=10)
+		spot_2_x_entry.grid(row=spots_row, column=1, sticky="w", padx=pad, pady=pad)
+		self.entry_to_name[spot_2_x_entry] = "spot_2_offset_x"
+
+		spots_row += 1
+		ttk.Label(spots_frame, text="Spot 2 Y (µm)").grid(row=spots_row, column=0, sticky="e", padx=pad, pady=pad)
+		spot_2_y_entry = ttk.Entry(spots_frame, textvariable=self.vars["spot_2_offset_y"], width=10)
+		spot_2_y_entry.grid(row=spots_row, column=1, sticky="w", padx=pad, pady=pad)
+		self.entry_to_name[spot_2_y_entry] = "spot_2_offset_y"
+
+		spots_row += 1
+		ttk.Label(spots_frame, text="Spot 3 X (µm)").grid(row=spots_row, column=0, sticky="e", padx=pad, pady=pad)
+		spot_3_x_entry = ttk.Entry(spots_frame, textvariable=self.vars["spot_3_offset_x"], width=10)
+		spot_3_x_entry.grid(row=spots_row, column=1, sticky="w", padx=pad, pady=pad)
+		self.entry_to_name[spot_3_x_entry] = "spot_3_offset_x"
+
+		spots_row += 1
+		ttk.Label(spots_frame, text="Spot 3 Y (µm)").grid(row=spots_row, column=0, sticky="e", padx=pad, pady=pad)
+		spot_3_y_entry = ttk.Entry(spots_frame, textvariable=self.vars["spot_3_offset_y"], width=10)
+		spot_3_y_entry.grid(row=spots_row, column=1, sticky="w", padx=pad, pady=pad)
+		self.entry_to_name[spot_3_y_entry] = "spot_3_offset_y"
+
+		spots_row += 1
+		ttk.Label(spots_frame, text="Spot 4 X (µm)").grid(row=spots_row, column=0, sticky="e", padx=pad, pady=pad)
+		spot_4_x_entry = ttk.Entry(spots_frame, textvariable=self.vars["spot_4_offset_x"], width=10)
+		spot_4_x_entry.grid(row=spots_row, column=1, sticky="w", padx=pad, pady=pad)
+		self.entry_to_name[spot_4_x_entry] = "spot_4_offset_x"
+
+		spots_row += 1
+		ttk.Label(spots_frame, text="Spot 4 Y (µm)").grid(row=spots_row, column=0, sticky="e", padx=pad, pady=pad)
+		spot_4_y_entry = ttk.Entry(spots_frame, textvariable=self.vars["spot_4_offset_y"], width=10)
+		spot_4_y_entry.grid(row=spots_row, column=1, sticky="w", padx=pad, pady=pad)
+		self.entry_to_name[spot_4_y_entry] = "spot_4_offset_y"
 
 		row += 1
-		ttk.Label(self.master, text="astig oblique").grid(row=row, column=0, sticky="e", padx=pad, pady=pad)
-		astig_oblique_entry = ttk.Entry(self.master, textvariable=self.vars["astig_oblique"], width=10)
-		astig_oblique_entry.grid(row=row, column=1, sticky="w", padx=pad, pady=pad)
+		aberration_frame = ttk.LabelFrame(self.master, text="Aberration Correction")
+		aberration_frame.grid(row=row, column=0, columnspan=2, padx=pad, pady=pad, sticky="nsew")
+
+		aberration_row = 0
+		ttk.Label(aberration_frame, text="astig vertical").grid(row=aberration_row, column=0, sticky="e", padx=pad, pady=pad)
+		astig_vertical_entry = ttk.Entry(aberration_frame, textvariable=self.vars["astig_vertical"], width=10)
+		astig_vertical_entry.grid(row=aberration_row, column=1, sticky="w", padx=pad, pady=pad)
+		self.entry_to_name[astig_vertical_entry] = "astig_vertical"
+
+		aberration_row += 1
+		ttk.Label(aberration_frame, text="astig oblique").grid(row=aberration_row, column=0, sticky="e", padx=pad, pady=pad)
+		astig_oblique_entry = ttk.Entry(aberration_frame, textvariable=self.vars["astig_oblique"], width=10)
+		astig_oblique_entry.grid(row=aberration_row, column=1, sticky="w", padx=pad, pady=pad)
 		self.entry_to_name[astig_oblique_entry] = "astig_oblique"
 
 		# ---- Blaze curve editor ----
@@ -191,6 +245,12 @@ class HologramApp:
 			loy_entry,
 			sox_entry,
 			soy_entry,
+			spot_2_x_entry,
+			spot_2_y_entry,
+			spot_3_x_entry,
+			spot_3_y_entry,
+			spot_4_x_entry,
+			spot_4_y_entry,
 			astig_vertical_entry,
 			astig_oblique_entry,
 		):
@@ -423,6 +483,12 @@ class HologramApp:
 		line_offset_y = self._get_float("line_offset_y")
 		spot_offset_x = self._get_float("spot_offset_x")
 		spot_offset_y = self._get_float("spot_offset_y")
+		spot_2_offset_x = self._get_float("spot_2_offset_x")
+		spot_2_offset_y = self._get_float("spot_2_offset_y")
+		spot_3_offset_x = self._get_float("spot_3_offset_x")
+		spot_3_offset_y = self._get_float("spot_3_offset_y")
+		spot_4_offset_x = self._get_float("spot_4_offset_x")
+		spot_4_offset_y = self._get_float("spot_4_offset_y")
 		astig_vertical = self._get_float("astig_vertical")
 		astig_oblique = self._get_float("astig_oblique")
 
@@ -455,6 +521,12 @@ class HologramApp:
 			line_offset_y=line_offset_y,
 			spot_offset_x=spot_offset_x,
 			spot_offset_y=spot_offset_y,
+			spot_2_offset_x=spot_2_offset_x,
+			spot_2_offset_y=spot_2_offset_y,
+			spot_3_offset_x=spot_3_offset_x,
+			spot_3_offset_y=spot_3_offset_y,
+			spot_4_offset_x=spot_4_offset_x,
+			spot_4_offset_y=spot_4_offset_y,
 			astig_vertical=astig_vertical,
 			astig_oblique=astig_oblique,
 			rng=rng
