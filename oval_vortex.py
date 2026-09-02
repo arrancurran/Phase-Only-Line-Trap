@@ -6,14 +6,17 @@ import matplotlib.pyplot as plt
 from fresnel_phase import fresnel_phase
 from grating_phase import grating_phase
 from vortex_phase import vortex_phase, vortex_phase_anisotropic
-from astig_phase import astig_phase, zernike_astig_phase
+from astig_phase import phase_zernike
 
 
 from visualise import visualise_focal_plane, slm_to_img_scaling, plot_line_intensity
 
+plt.rcParams["font.family"] = "Times New Roman"   # or "Arial", "DejaVu Serif", etc.
+plt.rcParams["mathtext.fontset"] = "stix"         # makes Greek/math text match better
+
 # ---------------- SLM parameters ----------------
 offset_x, offset_y = 0, 0
-Nx, Ny = 512, 512       # SLM pixels
+Nx, Ny = 1024, 1024       # SLM pixels
 p = 15e-6               # pixel pitch [m]
 wavelength = 1064e-9    # wavelength [m]
 f = 3.0e-3              # objective focal length [m]
@@ -31,39 +34,48 @@ scaling_factor = p / (f * wavelength)
 
 
 # ---------------- Spot parameters ----------------      
-vortex_charge = 40      # topological charge of the vortex
+vortex_charge = 20      # topological charge of the vortex
 aspect_ratio = 1.0     # aspect ratio of the vortex (ax/ay) to create an elliptical vortex
 
 # ---------------- Plots parameters ----------------
 
 phase_vortex = vortex_phase_anisotropic(Nx, Ny, vortex_charge, ax=aspect_ratio, ay=1.0)
 
-phase_astig = zernike_astig_phase(Nx, Ny, strength=4, angle_deg=45, pupil_radius_pix=None)
+phase_astig = phase_zernike(Nx, Ny, c_astig_vertical=0.0, c_astig_oblique=-0.0, pupil_radius_pix=None)
 
 holo = np.mod(phase_vortex + phase_astig, 2*np.pi)
 
-fig = plt.figure(figsize=(12, 12), constrained_layout=True)
-gs = fig.add_gridspec(nrows=1, ncols=2)
-
-# Top 3 plots
-ax1 = fig.add_subplot(gs[0, 0])
-ax2 = fig.add_subplot(gs[0, 1])
-
-im1 = ax1.imshow(holo, cmap="gray")
-ax1.set_title("Vortex phase + Astigmatism phase")
-ax1.axis("off")
-
 I = visualise_focal_plane(holo, Nx, Ny, p, obj_mask)
 
-size = 200
+size = 256
 
 cy, cx = Ny // 2, Nx // 2
 half = size // 2
 
 I_crop = I[cy-half:cy+half, cx-half:cx+half]
 
-im2 = ax2.imshow(I_crop, cmap="gray")
-ax2.set_title("Predicted Intensity at Focus with Oval Guaussian Illumination")
-ax2.axis("off")
+# Save phase plot separately.
+fig_phase, ax_phase = plt.subplots(figsize=(6, 6))
+im_phase = ax_phase.imshow(holo, cmap="gray", vmin=0.0, vmax=2.0 * np.pi)
+ax_phase.axis("off")
+cbar = fig_phase.colorbar(im_phase, ax=ax_phase, fraction=0.046, pad=0.04)
+cbar.set_label(rf"$\ell \theta$", rotation=270, labelpad=0, fontsize=24)
+cbar.set_ticks([0.0, 2.0 * np.pi])
+cbar.set_ticklabels(["0", r"$2\pi$"])
+cbar.ax.tick_params(labelsize=20)  # Set the font size of the colorbar ticks
+fig_phase.savefig("oval_vortex_phase.png", dpi=600, bbox_inches="tight", pad_inches=0)
 
+# Save focal intensity crop separately.
+# Save focal intensity crop separately.
+fig_intensity, ax_intensity = plt.subplots(figsize=(6, 6))
+im_intensity = ax_intensity.imshow(I_crop, cmap="turbo")
+ax_intensity.axis("off")
+
+cbar_I = fig_intensity.colorbar(im_intensity, ax=ax_intensity, fraction=0.046, pad=0.04)
+cbar_I.set_label(r"$\left|\mathcal{F}\,\left(Ae^{i\ell\theta}\right)\right|^2$", rotation=270, labelpad=18, fontsize=24)
+cbar_I.set_ticks([0.0, 1.0])
+cbar_I.set_ticklabels(["0", "1"])
+cbar_I.ax.tick_params(labelsize=20)  # Set the font size of the colorbar ticks
+
+fig_intensity.savefig("oval_vortex_intensity.png", dpi=600, bbox_inches="tight", pad_inches=0)
 plt.show()
