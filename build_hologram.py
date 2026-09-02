@@ -65,6 +65,8 @@ def build_hologram(
         Grating offsets for Spot 4 (µm).
     spot_1_weight, spot_2_weight, spot_3_weight, spot_4_weight : float, optional
         Relative amplitudes A_n for each spot in the complex-field sum.
+        Spots 2--4 are disabled when both of their offsets are zero. Spot 1
+        remains active at zero offset for backwards compatibility.
 
     Returns
     -------
@@ -100,14 +102,21 @@ def build_hologram(
         grating_spot_3 = np.mod(grating_spot_3 + phase_astig, 2 * np.pi).astype(np.float32)
         grating_spot_4 = np.mod(grating_spot_4 + phase_astig, 2 * np.pi).astype(np.float32)
         
-    # Combine spot holograms using:
+    # Combine configured spot holograms using:
     # Phi_comb = arg(sum_n A_n * exp(i * Phi_n)).
-    spot_field_sum = (
-        spot_1_weight * np.exp(1j * grating_spot_1)
-        + spot_2_weight * np.exp(1j * grating_spot_2)
-        + spot_3_weight * np.exp(1j * grating_spot_3)
-        + spot_4_weight * np.exp(1j * grating_spot_4)
+    #
+    # The UI uses (0, 0) as the unconfigured value for the additional spots.
+    # Including those entries would add constant phasors to the sum and turn a
+    # single spot's linear phase ramp into arg(A exp(i Phi) + constant).
+    spot_field_sum = spot_1_weight * np.exp(1j * grating_spot_1)
+    additional_spots = (
+        (spot_2_offset_x, spot_2_offset_y, spot_2_weight, grating_spot_2),
+        (spot_3_offset_x, spot_3_offset_y, spot_3_weight, grating_spot_3),
+        (spot_4_offset_x, spot_4_offset_y, spot_4_weight, grating_spot_4),
     )
+    for offset_x, offset_y, weight, grating_spot in additional_spots:
+        if weight != 0.0 and (offset_x != 0.0 or offset_y != 0.0):
+            spot_field_sum += weight * np.exp(1j * grating_spot)
 
     holo_comb = np.angle(spot_field_sum).astype(np.float32)
     holo_comb = np.mod(holo_comb, 2 * np.pi).astype(np.float32)
